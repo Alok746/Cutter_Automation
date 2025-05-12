@@ -1,146 +1,93 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>NPS Summary</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: sans-serif;
-        }
-        #sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 20%;
-            height: 100%;
-            padding: 10px;
-            background: #f1f1f1;
-            overflow-y: auto;
-        }
-        #main {
-            margin-left: 22%;
-            padding: 20px;
-        }
-        table {
-            border-collapse: collapse;
-            margin-bottom: 30px;
-            table-layout: fixed;
-            width: 100%;
-        }
+{% extends "base.html" %}
 
-        th, td {
-            border: 1px solid #ccc;
-            padding: 6px 12px;
-            text-align: center;
-            white-space: normal;
-            word-wrap: break-word;
-            max-width: 120px;
-        }
+{% block content %}
+  <div class="layout">
+    {% include "components/sidebar_filter.html" %}
 
-        th {
-            background-color: #eee;
-            font-weight: bold;
-        }
-
-        .total-row td {
-            background-color: #eee;
-            font-weight: bold;
-        }
-
-        .percent-cell {
-            font-weight: bold;
-        }
-        .go-back {
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
-<body>
-
-{% include 'components/sidebar_filter.html' %}
-
-<div id="main">
-    <form action="/select_columns" method="post" class="go-back">
+    <div class="content">
+      <form action="/select_columns" method="post" class="go-back">
         <input type="hidden" name="filename" value="{{ filename }}">
         <input type="hidden" name="sheet" value="{{ sheet }}">
         <button type="submit">← Go Back & Reselect Columns</button>
-    </form>
+      </form>
 
-    <h1>{{ question_text }}</h1>
+      <h2>{{ question_text }} - NPS Summary</h2>
 
-    <h2>NPS Breakdown (Count)</h2>
-    <table>
-        <thead>
+      <h3>NPS Breakdown (Counts & Scores)</h3>
+      <div style="overflow-x: auto;">
+        <table class="results-table matrix-table">
+          <thead>
             <tr>
-                <th style="background-color:#eee;">Category</th>
-                {% for col in col_labels %}
-                    <th>{{ col }}</th>
-                {% endfor %}
+              <th>Category</th>
+              {% for col in col_labels %}
+              <th>{{ col }}</th>
+              {% endfor %}
             </tr>
-        </thead>
-        <tbody>
+          </thead>
+          <tbody>
             <tr>
-                <td style="background-color:#eee;">Promoters</td>
-                {% for val in promoters %}
-                    <td>{{ val }}</td>
-                {% endfor %}
-            </tr>
-            <tr>
-                <td style="background-color:#eee;">Neutrals</td>
-                {% for val in neutrals %}
-                    <td>{{ val }}</td>
-                {% endfor %}
+              <td class="row-label">Promoters</td>
+              {% for val in promoters %}
+              <td>{{ val }}</td>
+              {% endfor %}
             </tr>
             <tr>
-                <td style="background-color:#eee;">Detractors</td>
-                {% for val in detractors %}
-                    <td>{{ val }}</td>
-                {% endfor %}
+              <td class="row-label">Neutrals</td>
+              {% for val in neutrals %}
+              <td>{{ val }}</td>
+              {% endfor %}
             </tr>
             <tr>
-                <td style="background-color:#eee;">NPS Score</td>
-                {% for val in nps_scores %}
-                    <td><strong>{{ val }}%</strong></td>
-                {% endfor %}
+              <td class="row-label">Detractors</td>
+              {% for val in detractors %}
+              <td>{{ val }}</td>
+              {% endfor %}
             </tr>
             <tr>
-                <td style="background-color:#eee;">Average Score</td>
-                {% for val in average_scores %}
-                    <td><strong>{{ val }}</strong></td>
-                {% endfor %}
+              <td class="row-label">NPS Score</td>
+              {% for val in nps_scores %}
+              <td><strong>{{ val }}%</strong></td>
+              {% endfor %}
             </tr>
-        </tbody>
-    </table>
+            <tr>
+              <td class="row-label">Average Score</td>
+              {% for val in average_scores %}
+              <td><strong>{{ val }}</strong></td>
+              {% endfor %}
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-
-
-    <table>
-        <thead>
+      <h3>Score Distribution by Brand</h3>
+      <div style="overflow-x: auto;">
+        <table class="results-table matrix-table">
+          <thead>
             <tr>
-                <th>Score</th>
-                {% for col in col_labels %}
-                    <th>{{ col }}</th>
-                {% endfor %}
+              <th>Score</th>
+              {% for col in col_labels %}
+              <th>{{ col }}</th>
+              {% endfor %}
             </tr>
-        </thead>
-        <tbody>
+          </thead>
+          <tbody>
             {% for score, counts in result_matrix %}
-                <tr>
-                    <td style="background-color: #eee;">{{ score }}</td>
-                    {% for count in counts %}
-                        <td>{{ count }}</td>
-                    {% endfor %}
-                </tr>
+            <tr>
+              <td class="row-label">{{ score }}</td>
+              {% for count in counts %}
+              <td>{{ count }}</td>
+              {% endfor %}
+            </tr>
             {% endfor %}
             <tr class="total-row">
-                <td><strong>Total</strong></td>
-                {% for total in col_totals %}
-                    <td><strong>{{ total }}</strong></td>
-                {% endfor %}
+              <td><strong>Total</strong></td>
+              {% for total in col_totals %}
+              <td><strong>{{ total }}</strong></td>
+              {% endfor %}
             </tr>
-        </tbody>
-    </table>
-</div>
-
-</body>
-</html>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}

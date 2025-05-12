@@ -1,126 +1,69 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>2D Cross Cut Summary</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: sans-serif;
-        }
+{% extends "base.html" %}
 
-        #sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 20%;
-            height: 100%;
-            padding: 10px;
-            background: #f1f1f1;
-            overflow-y: auto;
-        }
-
-        #main {
-            margin-left: 22%;
-            padding: 20px;
-        }
-
-        .matrix-table {
-            border-collapse: collapse;
-            margin-bottom: 30px;
-            width: 100%;
-        }
-
-        .matrix-table th,
-        .matrix-table td {
-            border: 1px solid #ccc;
-            padding: 6px 12px;
-            text-align: center;
-        }
-
-        .matrix-table th {
-            background-color: #eee;
-        }
-
-        .total-row td {
-            background-color: #eee;
-            font-weight: bold;
-        }
-
-        .percent-cell {
-            font-weight: bold;
-        }
-
-        .go-back {
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
-<body>
-
-{% include 'components/sidebar_filter.html' %}
-
-<div id="main">
+{% block content %}
+<div class="layout">
+  {% include "components/sidebar_filter.html" %}
+  <div class="content">
     <form action="/select_columns" method="post" class="go-back">
-        <input type="hidden" name="filename" value="{{ filename }}">
-        <input type="hidden" name="sheet" value="{{ sheet }}">
-        <button type="submit">← Go Back & Reselect Columns</button>
+      <input type="hidden" name="filename" value="{{ filename }}">
+      <input type="hidden" name="sheet" value="{{ sheet }}">
+      <button type="submit">← Go Back & Reselect Columns</button>
     </form>
 
-    <h1>{{ question_text }}</h1>
+    <h2>{{ question_text }} - Cross Cut Summary</h2>
 
-    <table class="matrix-table">
-        <thead>
-            <tr>
-                <th>% of respondents >></th>
-                <th>Overall</th>
-                {% for cut in cut_headers %}
-                    <th>{{ cut }}</th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for label, overall_pct, percents in percent_matrix %}
-                <tr>
-                    <td style="background-color: #eee;">{{ label }}</td>
-                    <td class="percent-cell">{{ "%.1f"|format(overall_pct) }}%</td>
-                    {% for pct in percents %}
-                        <td class="percent-cell">{{ "%.1f"|format(pct) }}%</td>
-                    {% endfor %}
-                </tr>
-            {% endfor %}
-        </tbody>
+    <table class="results-table matrix-table">
+      <thead>
+        <tr>
+          <th>% of respondents >></th>
+          <th>Overall</th>
+          {% for cut in cut_headers %}
+            <th>{{ cut }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for label, overall_pct, percents in percent_matrix %}
+        <tr>
+          <td class="row-label">{{ label }}</td>
+          <td class="percent-cell">{{ "%.1f"|format(overall_pct) }}%</td>
+          {% for pct in percents %}
+          <td class="percent-cell">{{ "%.1f"|format(pct) }}%</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
     </table>
 
-    <table class="matrix-table">
-        <thead>
-            <tr>
-                <th># of respondents >></th>
-                <th>Overall</th>
-                {% for cut in cut_headers %}
-                    <th>{{ cut }}</th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for label, row_total, counts in result_matrix %}
-                <tr>
-                    <td style="background-color: #eee;">{{ label }}</td>
-                    <td><strong>{{ row_total }}</strong></td>
-                    {% for count in counts %}
-                        <td>{{ count }}</td>
-                    {% endfor %}
-                </tr>
-            {% endfor %}
-            <tr class="total-row">
-                <td><strong>Total</strong></td>
-                <td><strong>{{ total_respondents }}</strong></td>
-                {% for col_total in cut_totals %}
-                    <td><strong>{{ col_total }}</strong></td>
-                {% endfor %}
-            </tr>
-        </tbody>
+    <table class="results-table matrix-table">
+      <thead>
+        <tr>
+          <th># of respondents >></th>
+          <th>Overall</th>
+          {% for cut in cut_headers %}
+            <th>{{ cut }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for label, row_total, counts in result_matrix %}
+        <tr>
+          <td class="row-label">{{ label }}</td>
+          <td><strong>{{ row_total }}</strong></td>
+          {% for count in counts %}
+          <td>{{ count }}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+          <td><strong>Total</strong></td>
+          <td><strong>{{ total_respondents }}</strong></td>
+          {% for col_total in cut_totals %}
+          <td><strong>{{ col_total }}</strong></td>
+          {% endfor %}
+        </tr>
+      </tbody>
     </table>
-</div>
-
-</body>
-</html>
+  </div>
+</div>  
+{% endblock %}

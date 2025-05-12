@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="layout">
+    {% include "components/sidebar_filter.html" %}
+
+    <div class="content">
+      <h2>Select Questions for Combined Results</h2>
+      <form method="post" action="/compare_multi_questions">
+        <input type="hidden" name="filename" value="{{ filename }}">
+        <input type="hidden" name="sheet" value="{{ sheet }}">
+
+        <div class="question-list">
+          {% for question in questions %}
+          <div class="question-block">
+            <label>
+              <input type="checkbox" name="include_{{ question }}" checked>
+              <strong>{{ question }}</strong>
+            </label><br>
+
+            <div class="question-types">
+              <label><input type="radio" name="type_{{ question }}" value="single_choice" checked> Single Choice</label>
+              <label><input type="radio" name="type_{{ question }}" value="matrix"> Matrix</label>
+              <label><input type="radio" name="type_{{ question }}" value="multi_select"> Multi-Select</label>
+              <label><input type="radio" name="type_{{ question }}" value="cross_cut"> Cross Cut</label>
+              <label><input type="radio" name="type_{{ question }}" value="ranked"> Ranked</label>
+              <label><input type="radio" name="type_{{ question }}" value="nps"> NPS</label>
+            </div>
+          </div>
+          <hr>
+          {% endfor %}
+        </div>
+
+        <button type="submit">Generate Combined Results</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

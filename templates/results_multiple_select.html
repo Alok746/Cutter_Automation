@@ -1,102 +1,49 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Multiple Select Summary</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: sans-serif;
-        }
+{% extends "base.html" %}
 
-        #sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 20%;
-            height: 100%;
-            padding: 10px;
-            background: #f1f1f1;
-            overflow-y: auto;
-        }
+{% block content %}
+  <div class="layout">
+    {% include "components/sidebar_filter.html" %}
 
-        #main {
-            margin-left: 22%;
-            padding: 20px;
-        }
-
-        table {
-            border-collapse: collapse;
-            margin-bottom: 20px;
-            width: 100%;
-        }
-
-        th, td {
-            border: 1px solid #ccc;
-            padding: 6px 12px;
-            text-align: center;
-        }
-
-        th {
-            background-color: #eee;
-        }
-
-        .total-row td {
-            background-color: #f4f4f4;
-            font-weight: bold;
-        }
-
-        .percent-cell {
-            font-weight: bold;
-        }
-
-        .go-back {
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
-<body>
-
-{% include 'components/sidebar_filter.html' %}
-
-<div id="main">
-    <form action="/select_columns" method="post" class="go-back">
+    <div class="content">
+      <form action="/select_columns" method="post" class="go-back">
         <input type="hidden" name="filename" value="{{ filename }}">
         <input type="hidden" name="sheet" value="{{ sheet }}">
         <button type="submit">← Go Back & Reselect Columns</button>
-    </form>
+      </form>
 
-    <h1>{{ question_text }}</h1>
+      <h2>{{ question_text }} - Multiple Select Summary</h2>
 
-    <table>
-        <thead>
+      <div style="overflow-x: auto;">
+        <table class="results-table">
+          <thead>
             <tr>
-                <th>Response Option</th>
-                <th># of responses</th>
-                <th>Total # of respondents</th>
-                <th>% of respondents</th>
-                <th>% of responses</th>
+              <th>Response Option</th>
+              <th># of Responses</th>
+              <th>Total # of Respondents</th>
+              <th>% of Respondents</th>
+              <th>% of Responses</th>
             </tr>
-        </thead>
-        <tbody>
+          </thead>
+          <tbody>
             {% for label, count, pct_respondent, pct_response in response_summary %}
-                <tr>
-                    <td style="background-color:#eee;">{{ label }}</td>
-                    <td>{{ count }}</td>
-                    <td>{{ total_respondents }}</td>
-                    <td class="percent-cell">{{ "%.2f"|format(pct_respondent) }}%</td>
-                    <td class="percent-cell">{{ "%.2f"|format(pct_response) }}%</td>
-                </tr>
+            <tr>
+              <td class="row-label">{{ label }}</td>
+              <td>{{ count }}</td>
+              <td>{{ total_respondents }}</td>
+              <td class="percent-cell">{{ "%.2f"|format(pct_respondent) }}%</td>
+              <td class="percent-cell">{{ "%.2f"|format(pct_response) }}%</td>
+            </tr>
             {% endfor %}
             <tr class="total-row">
-                <td>Total</td>
-                <td>{{ total_responses }}</td>
-                <td>{{ total_respondents }}</td>
-                <td class="percent-cell">{{ "%.2f"|format(total_pct_respondent) }}%</td>
-                <td class="percent-cell">{{ "%.2f"|format(total_pct_response) }}%</td>
+              <td>Total</td>
+              <td>{{ total_responses }}</td>
+              <td>{{ total_respondents }}</td>
+              <td class="percent-cell">{{ "%.2f"|format(total_pct_respondent) }}%</td>
+              <td class="percent-cell">{{ "%.2f"|format(total_pct_response) }}%</td>
             </tr>
-        </tbody>
-    </table>
-</div>
-
-</body>
-</html>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}

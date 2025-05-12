@@ -2,90 +2,172 @@
 <html>
 <head>
     <title>Select Column</title>
-    <script>
-        function toggleCheckbox(clicked) {
-            const all = [
-                'single_choice',
-                'matrix_question',
-                'multiple_choice',
-                'cross_cut',
-                'ranked_question',
-                'nps_question'
-            ];
-            all.forEach(id => {
-                if (id !== clicked.id) {
-                    document.getElementById(id).checked = false;
-                }
-            });
-
-            document.getElementById("cutDropdown").style.display =
-                document.getElementById("cross_cut").checked ? "block" : "none";
-            document.getElementById("rankTextbox").style.display =
-                document.getElementById("ranked_question").checked ? "block" : "none";
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #fafafa;
+            margin: 0;
+            padding: 30px;
+            color: #333;
         }
 
-        function setFormAction() {
-            const form = document.getElementById("columnForm");
-            if (document.getElementById("cross_cut").checked) {
-                form.action = "{{ url_for('compare_cross_cut') }}";
-            } else if (document.getElementById("matrix_question").checked) {
-                form.action = "{{ url_for('compare_matrix_question') }}";
-            } else if (document.getElementById("multiple_choice").checked) {
-                form.action = "{{ url_for('compare_multiple_select') }}";
-            } else if (document.getElementById("ranked_question").checked) {
-                form.action = "{{ url_for('compare_ranked') }}";
-            } else if (document.getElementById("nps_question").checked) {
-                form.action = "{{ url_for('compare_nps') }}";
-            } else {
-                form.action = "{{ url_for('compare_answers') }}";
-            }
+        h1 {
+            margin-bottom: 20px;
+            font-size: 24px;
         }
-    </script>
+
+        form {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        select,
+        input[type="number"],
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .checkbox-group label {
+            font-weight: normal;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .optional-section {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 16px;
+            font-size: 14px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .error {
+            color: red;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
 
-    <h1>Select a Column from Sheet: {{ sheet }}</h1>
+<h1>Select a Column from Sheet: {{ sheet }}</h1>
 
-    {% if error_message %}
-        <p style="color: red; font-weight: bold;">{{ error_message }}</p>
-    {% endif %}
+{% if error_message %}
+    <div class="error">{{ error_message }}</div>
+{% endif %}
 
-    <form id="columnForm" method="post" onsubmit="setFormAction()">
-        <input type="hidden" name="filename" value="{{ filename }}">
-        <input type="hidden" name="sheet" value="{{ sheet }}">
+<form id="columnForm" method="post" onsubmit="setFormAction()">
+    <input type="hidden" name="filename" value="{{ filename }}">
+    <input type="hidden" name="sheet" value="{{ sheet }}">
 
-        <label for="column">Choose column:</label>
+    <div class="form-group">
+        <label for="column">Choose a question column:</label>
         <select name="column" id="column" required>
             {% for col in columns %}
                 <option value="{{ col }}">{{ col }}</option>
             {% endfor %}
         </select>
-        <br><br>
+    </div>
 
-        <label><input type="checkbox" name="single_choice" id="single_choice" value="yes" checked onclick="toggleCheckbox(this)"> Single Choice Question</label><br>
-        <label><input type="checkbox" name="matrix_question" id="matrix_question" value="yes" onclick="toggleCheckbox(this)"> Matrix-type Question</label><br>
-        <label><input type="checkbox" name="multiple_choice" id="multiple_choice" value="yes" onclick="toggleCheckbox(this)"> Multiple-choice (binary)</label><br>
-        <label><input type="checkbox" name="cross_cut" id="cross_cut" value="yes" onclick="toggleCheckbox(this)"> 2D Cross Cut</label><br>
-        <label><input type="checkbox" name="ranked_question" id="ranked_question" value="yes" onclick="toggleCheckbox(this)"> Ranked Question</label><br>
-        <label><input type="checkbox" name="nps_question" id="nps_question" value="yes" onclick="toggleCheckbox(this)"> NPS Question</label><br><br>
-
-        <div id="cutDropdown" style="display:none;">
-            <label for="cut_column">Choose column to cross with:</label>
-            <select name="cut_column" id="cut_column">
-                {% for col in columns %}
-                    <option value="{{ col }}">{{ col }}</option>
-                {% endfor %}
-            </select><br><br>
+    <div class="form-group">
+        <label>Question Type:</label>
+        <div class="checkbox-group">
+            <label><input type="checkbox" name="single_choice" id="single_choice" value="yes" checked onclick="toggleCheckbox(this)"> Single Choice</label>
+            <label><input type="checkbox" name="matrix_question" id="matrix_question" value="yes" onclick="toggleCheckbox(this)"> Matrix-type</label>
+            <label><input type="checkbox" name="multiple_choice" id="multiple_choice" value="yes" onclick="toggleCheckbox(this)"> Multiple-choice (binary)</label>
+            <label><input type="checkbox" name="cross_cut" id="cross_cut" value="yes" onclick="toggleCheckbox(this)"> 2D Cross Cut</label>
+            <label><input type="checkbox" name="ranked_question" id="ranked_question" value="yes" onclick="toggleCheckbox(this)"> Ranked Question</label>
+            <label><input type="checkbox" name="nps_question" id="nps_question" value="yes" onclick="toggleCheckbox(this)"> NPS Question</label>
         </div>
+    </div>
 
-        <div id="rankTextbox" style="display:none;">
-            <label for="max_rank">Show Top N Ranks:</label>
-            <input type="number" id="max_rank" name="max_rank" min="1" max="10" value="3">
-        </div>
+    <div class="optional-section" id="cutDropdown" style="display: none;">
+        <label for="cut_column">Choose column to cross with:</label>
+        <select name="cut_column" id="cut_column">
+            {% for col in columns %}
+                <option value="{{ col }}">{{ col }}</option>
+            {% endfor %}
+        </select>
+    </div>
 
-        <br>
-        <button type="submit">Show Results</button>
-    </form>
+    <div class="optional-section" id="rankTextbox" style="display: none;">
+        <label for="max_rank">Show Top N Ranks:</label>
+        <input type="number" id="max_rank" name="max_rank" min="1" max="10" value="3">
+    </div>
+
+    <br>
+    <button type="submit">Show Results</button>
+</form>
+
+<script>
+    function toggleCheckbox(clicked) {
+        const all = [
+            'single_choice',
+            'matrix_question',
+            'multiple_choice',
+            'cross_cut',
+            'ranked_question',
+            'nps_question'
+        ];
+        all.forEach(id => {
+            if (id !== clicked.id) {
+                document.getElementById(id).checked = false;
+            }
+        });
+
+        document.getElementById("cutDropdown").style.display = document.getElementById("cross_cut").checked ? "block" : "none";
+        document.getElementById("rankTextbox").style.display = document.getElementById("ranked_question").checked ? "block" : "none";
+    }
+
+    function setFormAction() {
+        const form = document.getElementById("columnForm");
+
+        if (document.getElementById("cross_cut").checked) {
+            form.action = "{{ url_for('compare_cross_cut') }}";
+        } else if (document.getElementById("matrix_question").checked) {
+            form.action = "{{ url_for('compare_matrix_question') }}";
+        } else if (document.getElementById("multiple_choice").checked) {
+            form.action = "{{ url_for('compare_multiple_select') }}";
+        } else if (document.getElementById("ranked_question").checked) {
+            form.action = "{{ url_for('compare_ranked') }}";
+        } else if (document.getElementById("nps_question").checked) {
+            form.action = "{{ url_for('compare_nps') }}";
+        } else {
+            form.action = "{{ url_for('compare_answers') }}"; // default
+        }
+    }
+</script>
 
 </body>
 </html>

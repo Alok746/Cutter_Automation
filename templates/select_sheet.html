@@ -3,15 +3,21 @@
 <head><title>Select Sheet</title></head>
 <body>
     <h1>Select a Sheet</h1>
-    <form action="{{ url_for('select_columns') }}" method="post">
+    <form method="post" action="/route_selector">
         <input type="hidden" name="filename" value="{{ filename }}">
-        <label for="sheet">Choose sheet:</label>
-        <select name="sheet" id="sheet">
+        
+        <label for="sheet">Select a Sheet:</label>
+        <select name="sheet" id="sheet" required>
             {% for sheet in sheets %}
-                <option value="{{ sheet }}">{{ sheet }}</option>
+            <option value="{{ sheet }}">{{ sheet }}</option>
             {% endfor %}
         </select>
-        <button type="submit">Next</button>
-    </form>
+
+        <p>Select how you want to analyze questions:</p>
+        <label><input type="radio" name="view_mode" value="single" checked> One Question at a Time</label><br>
+        <label><input type="radio" name="view_mode" value="multi"> Multiple Questions Together</label><br><br>
+
+        <button type="submit">Continue</button>
+        </form>
 </body>
 </html>

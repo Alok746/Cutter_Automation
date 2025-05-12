@@ -1,4 +1,4 @@
-<!-- Filter state and metadata -->
+<!-- Filter State and Metadata -->
 <script id="filterData" type="application/json">
 {
     "questions": {{ request.form.getlist("filter_question") | tojson | safe }},
@@ -11,7 +11,7 @@
 </script>
 
 <!-- Sidebar -->
-<div id="sidebar">
+<div id="sidebar" class="sidebar">
     <button type="button" onclick="addFilter()">+ Add Filter</button>
 
     <form method="post" action="{{ request.path }}">
@@ -34,20 +34,21 @@
         </select><br><br>
 
         {% if sort_column_options %}
-            <div id="sort_column_container" style="display: none;">
-                <label for="sort_column">Sort column:</label><br>
-                <select name="sort_column" id="sort_column">
-                    {% for col in sort_column_options %}
-                        <option value="{{ col }}" {% if sort_column == col %}selected{% endif %}>{{ col }}</option>
-                    {% endfor %}
-                </select><br><br>
-            </div>
+        <div id="sort_column_container" style="display: none;">
+            <label for="sort_column">Sort column:</label><br>
+            <select name="sort_column" id="sort_column">
+                {% for col in sort_column_options %}
+                <option value="{{ col }}" {% if sort_column == col %}selected{% endif %}>{{ col }}</option>
+                {% endfor %}
+            </select><br><br>
+        </div>
         {% endif %}
 
         <button type="submit">Go</button>
     </form>
 </div>
 
+<!-- Filter + Sort Script -->
 <script>
     const allColumns = JSON.parse(document.getElementById("allColumnsData").textContent);
     const filterData = JSON.parse(document.getElementById("filterData").textContent);
@@ -71,12 +72,10 @@
         questionSelect.onchange = function () {
             loadValues(questionSelect, valueSelect);
         };
-
         questionSelect.appendChild(new Option("-- Select Question --", ""));
         allColumns.forEach(col => {
             questionSelect.appendChild(new Option(col, col));
         });
-
         if (prefillQ) questionSelect.value = prefillQ;
 
         block.appendChild(questionSelect);

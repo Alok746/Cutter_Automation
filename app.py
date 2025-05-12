@@ -19,6 +19,17 @@ def index():
             return render_template('select_sheet.html', filename=file.filename, sheets=sheets)
     return render_template('index.html')
 
+@app.route('/route_selector', methods=['POST'])
+def route_selector():
+    filename = request.form['filename']
+    sheet = request.form['sheet']
+    mode = request.form['view_mode']
+    
+    if mode == 'multi':
+        return render_template('select_questions.html', filename=filename, sheet=sheet)
+    else:
+        return select_columns()
+
 @app.route('/select_columns', methods=['POST'])
 def select_columns():
     filename = request.form['filename']
@@ -61,6 +72,26 @@ def get_answer_key_values():
             values.append(str(row[1]).strip())
 
     return json.dumps(values)
+
+@app.route('/select_questions', methods=['POST'])
+def select_questions():
+    filename = request.form['filename']
+    sheet = request.form['sheet']
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+    df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
+
+    questions = []
+    for _, row in df_key.iterrows():
+        if pd.notna(row[0]) and pd.isna(row[1]):
+            questions.append(str(row[0]).strip())
+
+    return render_template(
+        'select_questions.html',
+        filename=filename,
+        sheet=sheet,
+        questions=questions
+    )
 
 # Register routes
 from routes.single_choice import register_single_choice_routes
