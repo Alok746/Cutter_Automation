@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ranked Question Summary</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: sans-serif;
+        }
+
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 20%;
+            height: 100%;
+            padding: 10px;
+            background: #f1f1f1;
+            overflow-y: auto;
+        }
+
+        #main {
+            margin-left: 22%;
+            padding: 20px;
+        }
+
+        .matrix-table {
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        .matrix-table th,
+        .matrix-table td {
+            border: 1px solid #ccc;
+            padding: 6px 12px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .matrix-table th {
+            background-color: #eee;
+            font-weight: bold;
+        }
+
+        .total-row td {
+            background-color: #eee;
+            font-weight: bold;
+        }
+
+        .percent-cell {
+            font-weight: bold;
+        }
+
+        .go-back {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+{% include 'components/sidebar_filter.html' %}
+
+<div id="main">
+    <form action="/select_columns" method="post" class="go-back">
+        <input type="hidden" name="filename" value="{{ filename }}">
+        <input type="hidden" name="sheet" value="{{ sheet }}">
+        <button type="submit">← Go Back & Reselect Columns</button>
+    </form>
+
+    <h1>{{ question_text }}</h1>
+
+    <table class="matrix-table">
+        <thead>
+            <tr>
+                <th>% of respondents >></th>
+                <th>Overall</th>
+                {% for rank in rank_labels %}
+                    <th>{{ rank }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for label, overall_pct, percents in percent_matrix %}
+                <tr>
+                    <td style="background-color: #eee;">{{ label }}</td>
+                    <td class="percent-cell">{{ "%.1f"|format(overall_pct) }}%</td>
+                    {% for pct in percents %}
+                        <td class="percent-cell">{{ "%.1f"|format(pct) }}%</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table class="matrix-table">
+        <thead>
+            <tr>
+                <th># of respondents >></th>
+                <th>Overall</th>
+                {% for rank in rank_labels %}
+                    <th>{{ rank }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for label, row_total, counts in result_matrix %}
+                <tr>
+                    <td style="background-color: #eee;">{{ label }}</td>
+                    <td><strong>{{ row_total }}</strong></td>
+                    {% for count in counts %}
+                        <td>{{ count }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td><strong>Total</strong></td>
+                <td><strong>-</strong></td>
+                {% for total in col_totals %}
+                    <td><strong>{{ total }}</strong></td>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

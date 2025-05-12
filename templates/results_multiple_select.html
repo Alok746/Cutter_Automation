@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Multiple Select Summary</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: sans-serif;
+        }
+
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 20%;
+            height: 100%;
+            padding: 10px;
+            background: #f1f1f1;
+            overflow-y: auto;
+        }
+
+        #main {
+            margin-left: 22%;
+            padding: 20px;
+        }
+
+        .results-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .column, .label-column {
+            border-collapse: collapse;
+        }
+
+        .column th,
+        .column td,
+        .label-column th,
+        .label-column td {
+            border: 1px solid #ccc;
+            padding: 6px 12px;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        .column th,
+        .label-column th {
+            background-color: #eee;
+            font-weight: bold;
+        }
+
+        .percent-cell {
+            text-align: right;
+            font-weight: bold;
+            vertical-align: middle;
+        }
+
+        .totals-table {
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .totals-table td {
+            border: 1px solid #ccc;
+            padding: 6px 12px;
+            font-weight: bold;
+            background-color: #f4f4f4;
+        }
+
+        .go-back {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+{% include 'components/sidebar_filter.html' %}
+
+<div id="main">
+    <form action="/select_columns" method="post" class="go-back">
+        <input type="hidden" name="filename" value="{{ filename }}">
+        <input type="hidden" name="sheet" value="{{ sheet }}">
+        <button type="submit">← Go Back & Reselect Columns</button>
+    </form>
+
+    <h1>Response Summary for {{ question_text }}</h1>
+
+    <div class="results-container">
+        <!-- Column 1: Labels -->
+        <table class="label-column">
+            <thead><tr><th>Response Option</th></tr></thead>
+            <tbody>
+                {% for label, count, pct_respondent, pct_response in response_summary %}
+                    <tr><td style="background-color: #eee;">{{ label }}</td></tr>
+                {% endfor %}
+                <tr><td style="background-color: #eee;"><strong>Total</strong></td></tr>
+            </tbody>
+        </table>
+
+        <!-- Column 2: Count -->
+        <table class="column">
+            <thead>
+                <tr>
+                    <th># of responses</th>
+                    <th>Total # of respondents</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for label, count, pct_respondent, pct_response in response_summary %}
+                    <tr>
+                        <td>{{ count }}</td>
+                        <td>{{ total_respondents }}</td>
+                    </tr>
+                {% endfor %}
+                <tr>
+                    <td><strong>{{ total_responses }}</strong></td>
+                    <td style="background-color: #eee;"><strong>{{ total_respondents }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Column 3: Percentages -->
+        <table class="column">
+            <thead>
+                <tr>
+                    <th>% of respondents</th>
+                    <th>% of responses</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for label, count, pct_respondent, pct_response in response_summary %}
+                    <tr>
+                        <td class="percent-cell">{{ "%.2f"|format(pct_respondent) }}%</td>
+                        <td class="percent-cell">{{ "%.2f"|format(pct_response) }}%</td>
+                    </tr>
+                {% endfor %}
+                <tr>
+                    <td class="percent-cell" style="background-color: #eee;">-</td>
+                    <td class="percent-cell" style="background-color: #eee;">-</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+</html>

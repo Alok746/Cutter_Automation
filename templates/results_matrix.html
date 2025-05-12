@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Matrix Question Summary</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: sans-serif;
+        }
+
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 20%;
+            height: 100%;
+            padding: 10px;
+            background: #f1f1f1;
+            overflow-y: auto;
+        }
+
+        #main {
+            margin-left: 22%;
+            padding: 20px;
+        }
+
+        .matrix-table {
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        .matrix-table th,
+        .matrix-table td {
+            border: 1px solid #ccc;
+            padding: 6px 12px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .matrix-table th {
+            background-color: #eee;
+            font-weight: bold;
+        }
+
+        .percent-cell {
+            font-weight: bold;
+        }
+
+        .total-row td {
+            background-color: #eee;
+            font-weight: bold;
+        }
+
+        .go-back {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+{% include 'components/sidebar_filter.html' %}
+
+<div id="main">
+    <form action="/select_columns" method="post" class="go-back">
+        <input type="hidden" name="filename" value="{{ filename }}">
+        <input type="hidden" name="sheet" value="{{ sheet }}">
+        <button type="submit">← Go Back & Reselect Columns</button>
+    </form>
+
+    <h1>Response Summary for {{ question_text }}</h1>
+    <table class="matrix-table">
+        <thead>
+            <tr>
+                <th>% of respondents >></th>
+                {% for col in col_labels %}
+                    <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for i in range(row_labels|length) %}
+                <tr>
+                    <td style="background-color: #eee;">{{ row_labels[i] }}</td>
+                    {% for j in range(col_labels|length) %}
+                        <td class="percent-cell">
+                            {{ "%.0f"|format(percent_matrix[i][j]) }}%
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table class="matrix-table">
+        <thead>
+            <tr>
+                <th># of respondents >></th>
+                {% for col in col_labels %}
+                    <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for i in range(row_labels|length) %}
+                <tr>
+                    <td style="background-color: #eee;">{{ row_labels[i] }}</td>
+                    {% for j in range(col_labels|length) %}
+                        <td>{{ count_matrix[i][j] }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td>Total # of respondents</td>
+                {% for total in col_totals %}
+                    <td>{{ total }}</td>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

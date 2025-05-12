@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Single Choice Summary</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: sans-serif;
+        }
+
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 20%;
+            height: 100%;
+            padding: 10px;
+            background: #f1f1f1;
+            overflow-y: auto;
+        }
+
+        #main {
+            margin-left: 22%;
+            padding: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        table th, table td {
+            border: 1px solid #ccc;
+            padding: 6px 12px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #eee;
+        }
+
+        .percent-cell {
+            text-align: right;
+            font-weight: bold;
+        }
+
+        .total-row td {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+{% include 'components/sidebar_filter.html' %}
+
+<div id="main">
+
+    <form action="/select_columns" method="post">
+        <input type="hidden" name="filename" value="{{ filename }}">
+        <input type="hidden" name="sheet" value="{{ sheet }}">
+        <button type="submit">← Go Back & Reselect Columns</button>
+    </form>
+
+    <h1>Response Summary for {{ question_text }}</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Response Option</th>
+                <th># of respondents</th>
+                <th>% of respondents</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for label, count, pct in response_summary %}
+            <tr>
+                <td style="background-color: #eee;">{{ label }}</td>
+                <td>{{ count }}</td>
+                <td class="percent-cell">{{ "%.2f"|format(pct) }}%</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td>Total</td>
+                <td>{{ total_count }}</td>
+                <td class="percent-cell">{{ "%.2f"|format(total_pct) }}%</td>
+            </tr>
+        </tbody>
+    </table>
+
+</div>
+
+</body>
+</html>

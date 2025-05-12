@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Select Column</title>
+    <script>
+        function toggleCheckbox(clicked) {
+            const all = [
+                'single_choice',
+                'matrix_question',
+                'multiple_choice',
+                'cross_cut',
+                'ranked_question',
+                'nps_question'
+            ];
+            all.forEach(id => {
+                if (id !== clicked.id) {
+                    document.getElementById(id).checked = false;
+                }
+            });
+
+            document.getElementById("cutDropdown").style.display =
+                document.getElementById("cross_cut").checked ? "block" : "none";
+            document.getElementById("rankTextbox").style.display =
+                document.getElementById("ranked_question").checked ? "block" : "none";
+        }
+
+        function setFormAction() {
+            const form = document.getElementById("columnForm");
+            if (document.getElementById("cross_cut").checked) {
+                form.action = "{{ url_for('compare_cross_cut') }}";
+            } else if (document.getElementById("matrix_question").checked) {
+                form.action = "{{ url_for('compare_matrix_question') }}";
+            } else if (document.getElementById("multiple_choice").checked) {
+                form.action = "{{ url_for('compare_multiple_select') }}";
+            } else if (document.getElementById("ranked_question").checked) {
+                form.action = "{{ url_for('compare_ranked') }}";
+            } else if (document.getElementById("nps_question").checked) {
+                form.action = "{{ url_for('compare_nps') }}";
+            } else {
+                form.action = "{{ url_for('compare_answers') }}";
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <h1>Select a Column from Sheet: {{ sheet }}</h1>
+
+    {% if error_message %}
+        <p style="color: red; font-weight: bold;">{{ error_message }}</p>
+    {% endif %}
+
+    <form id="columnForm" method="post" onsubmit="setFormAction()">
+        <input type="hidden" name="filename" value="{{ filename }}">
+        <input type="hidden" name="sheet" value="{{ sheet }}">
+
+        <label for="column">Choose column:</label>
+        <select name="column" id="column" required>
+            {% for col in columns %}
+                <option value="{{ col }}">{{ col }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+
+        <label><input type="checkbox" name="single_choice" id="single_choice" value="yes" checked onclick="toggleCheckbox(this)"> Single Choice Question</label><br>
+        <label><input type="checkbox" name="matrix_question" id="matrix_question" value="yes" onclick="toggleCheckbox(this)"> Matrix-type Question</label><br>
+        <label><input type="checkbox" name="multiple_choice" id="multiple_choice" value="yes" onclick="toggleCheckbox(this)"> Multiple-choice (binary)</label><br>
+        <label><input type="checkbox" name="cross_cut" id="cross_cut" value="yes" onclick="toggleCheckbox(this)"> 2D Cross Cut</label><br>
+        <label><input type="checkbox" name="ranked_question" id="ranked_question" value="yes" onclick="toggleCheckbox(this)"> Ranked Question</label><br>
+        <label><input type="checkbox" name="nps_question" id="nps_question" value="yes" onclick="toggleCheckbox(this)"> NPS Question</label><br><br>
+
+        <div id="cutDropdown" style="display:none;">
+            <label for="cut_column">Choose column to cross with:</label>
+            <select name="cut_column" id="cut_column">
+                {% for col in columns %}
+                    <option value="{{ col }}">{{ col }}</option>
+                {% endfor %}
+            </select><br><br>
+        </div>
+
+        <div id="rankTextbox" style="display:none;">
+            <label for="max_rank">Show Top N Ranks:</label>
+            <input type="number" id="max_rank" name="max_rank" min="1" max="10" value="3">
+        </div>
+
+        <br>
+        <button type="submit">Show Results</button>
+    </form>
+
+</body>
+</html>

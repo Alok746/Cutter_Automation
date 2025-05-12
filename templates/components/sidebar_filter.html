@@ -1,0 +1,125 @@
+<!-- Sidebar: Filter metadata injected as JSON -->
+<script id="filterData" type="application/json">
+{
+    "questions": {{ request.form.getlist("filter_question") | tojson | safe }},
+    "values": {{ request.form.getlist("filter_value") | tojson | safe }}
+}
+</script>
+
+<!-- All column names for dropdowns -->
+<script id="allColumnsData" type="application/json">
+    {{ all_columns | tojson | safe }}
+</script>
+
+<!-- Sidebar UI -->
+<div id="sidebar">
+    <button type="button" onclick="addFilter()">+ Add Filter</button>
+
+    <form method="post" action="{{ request.path }}">
+        <input type="hidden" name="filename" value="{{ filename }}">
+        <input type="hidden" name="sheet" value="{{ sheet }}">
+        <input type="hidden" name="column" value="{{ question_code }}">
+        {% if cut_column %}
+            <input type="hidden" name="cut_column" value="{{ cut_column }}">
+        {% endif %}
+
+        <div id="filters"></div>
+
+        <hr>
+        <h3>Sort Table</h3>
+        <label for="sort_order">Sort by % of respondents:</label><br>
+        <select name="sort_order" id="sort_order">
+            <option value="none" {% if sort_order == 'none' %}selected{% endif %}>None</option>
+            <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Ascending</option>
+            <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Descending</option>
+        </select><br><br>
+
+        <button type="submit">Go</button>
+    </form>
+</div>
+
+<script>
+    const allColumns = JSON.parse(document.getElementById("allColumnsData").textContent);
+    const filterData = JSON.parse(document.getElementById("filterData").textContent);
+    let filterIndex = 0;
+
+    function addFilter(prefillQ = "", prefillV = "") {
+        const filtersDiv = document.getElementById("filters");
+
+        const block = document.createElement("div");
+        block.className = "filter-block";
+        block.style.marginTop = "15px";
+
+        const label = document.createElement("label");
+        label.innerText = `Filter ${filterIndex + 1}`;
+        block.appendChild(label);
+        block.appendChild(document.createElement("br"));
+
+        const questionSelect = document.createElement("select");
+        questionSelect.name = "filter_question";
+        questionSelect.className = "question-dropdown";
+        questionSelect.onchange = function () {
+            loadValues(questionSelect, valueSelect);
+        };
+
+        questionSelect.appendChild(new Option("-- Select Question --", ""));
+        allColumns.forEach(col => {
+            questionSelect.appendChild(new Option(col, col));
+        });
+
+        if (prefillQ) questionSelect.value = prefillQ;
+
+        block.appendChild(questionSelect);
+        block.appendChild(document.createElement("br"));
+        block.appendChild(document.createElement("br"));
+
+        const valueSelect = document.createElement("select");
+        valueSelect.name = "filter_value";
+        valueSelect.innerHTML = `<option value="__all__">All</option>`;
+        block.appendChild(valueSelect);
+
+        filtersDiv.appendChild(block);
+
+        if (prefillQ) {
+            loadValues(questionSelect, valueSelect, prefillV);
+        }
+
+        filterIndex++;
+    }
+
+    function loadValues(questionSelect, valueSelect, prefill = "") {
+        const question = questionSelect.value;
+        const filename = "{{ filename }}";
+        if (!question) return;
+
+        fetch("/get_answer_key_values", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ filename, question })
+        })
+        .then(response => response.json())
+        .then(data => {
+            valueSelect.innerHTML = '<option value="__all__">All</option>';
+            data.forEach(value => {
+                const opt = document.createElement("option");
+                opt.value = value;
+                opt.text = value;
+                valueSelect.appendChild(opt);
+            });
+            if (prefill) valueSelect.value = prefill;
+        });
+    }
+
+    window.onload = function () {
+        const questions = filterData.questions;
+        const values = filterData.values;
+
+        if (!questions.length) {
+            addFilter();  // start with one
+        } else {
+            for (let i = 0; i < questions.length; i++) {
+                addFilter(questions[i], values[i] || "__all__");
+            }
+        }
+    };
+</script>
