@@ -12,58 +12,62 @@
 
     <h2>{{ question_text }} - Cross Cut Summary</h2>
 
-    <table class="results-table matrix-table">
-      <thead>
-        <tr>
-          <th>% of respondents >></th>
-          <th>Overall</th>
-          {% for cut in cut_headers %}
-            <th>{{ cut }}</th>
+    <div style="overflow-x: auto;">
+      <table class="results-table matrix-table">
+        <thead>
+          <tr>
+            <th>% of respondents >></th>
+            <th>Overall</th>
+            {% for cut in cut_headers %}
+              <th>{{ cut }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for label, overall_pct, percents in percent_matrix %}
+          <tr>
+            <td class="row-label">{{ label }}</td>
+            <td class="percent-cell">{{ "%.1f"|format(overall_pct) }}%</td>
+            {% for pct in percents %}
+            <td class="percent-cell">{{ "%.1f"|format(pct) }}%</td>
+            {% endfor %}
+          </tr>
           {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for label, overall_pct, percents in percent_matrix %}
-        <tr>
-          <td class="row-label">{{ label }}</td>
-          <td class="percent-cell">{{ "%.1f"|format(overall_pct) }}%</td>
-          {% for pct in percents %}
-          <td class="percent-cell">{{ "%.1f"|format(pct) }}%</td>
-          {% endfor %}
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
 
-    <table class="results-table matrix-table">
-      <thead>
-        <tr>
-          <th># of respondents >></th>
-          <th>Overall</th>
-          {% for cut in cut_headers %}
-            <th>{{ cut }}</th>
+    <div style="overflow-x: auto;">
+      <table class="results-table matrix-table">
+        <thead>
+          <tr>
+            <th># of respondents >></th>
+            <th>Overall</th>
+            {% for cut in cut_headers %}
+              <th>{{ cut }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for label, row_total, counts in result_matrix %}
+          <tr>
+            <td class="row-label">{{ label }}</td>
+            <td><strong>{{ row_total }}</strong></td>
+            {% for count in counts %}
+            <td>{{ count }}</td>
+            {% endfor %}
+          </tr>
           {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for label, row_total, counts in result_matrix %}
-        <tr>
-          <td class="row-label">{{ label }}</td>
-          <td><strong>{{ row_total }}</strong></td>
-          {% for count in counts %}
-          <td>{{ count }}</td>
-          {% endfor %}
-        </tr>
-        {% endfor %}
-        <tr class="total-row">
-          <td><strong>Total</strong></td>
-          <td><strong>{{ total_respondents }}</strong></td>
-          {% for col_total in cut_totals %}
-          <td><strong>{{ col_total }}</strong></td>
-          {% endfor %}
-        </tr>
-      </tbody>
-    </table>
+          <tr class="total-row">
+            <td><strong>Total</strong></td>
+            <td><strong>{{ total_respondents }}</strong></td>
+            {% for col_total in cut_totals %}
+            <td><strong>{{ col_total }}</strong></td>
+            {% endfor %}
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
-</div>  
+</div>
 {% endblock %}

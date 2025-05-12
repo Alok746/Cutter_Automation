@@ -1,69 +1,68 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <div class="layout">
-    {% include "components/sidebar_filter.html" %}
+<div class="layout">
+  {% include "components/sidebar_filter.html" %}
+  <div class="content">
+    <form action="/select_columns" method="post" class="go-back">
+      <input type="hidden" name="filename" value="{{ filename }}">
+      <input type="hidden" name="sheet" value="{{ sheet }}">
+      <button type="submit">← Go Back & Reselect Columns</button>
+    </form>
 
-    <div class="content">
-      <form action="/select_columns" method="post" class="go-back">
-        <input type="hidden" name="filename" value="{{ filename }}">
-        <input type="hidden" name="sheet" value="{{ sheet }}">
-        <button type="submit">← Go Back & Reselect Columns</button>
-      </form>
+    <h2>Response Summary for {{ question_text }}</h2>
 
-      <h2>Response Summary for {{ question_text }}</h2>
-
-      <div style="overflow-x: auto;">
-        <table class="results-table matrix-table">
-          <thead>
-            <tr>
-              <th>% of respondents >></th>
-              {% for col in col_labels %}
-              <th>{{ col }}</th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for i in range(row_labels|length) %}
-            <tr>
-              <td class="row-label">{{ row_labels[i] }}</td>
-              {% for j in range(col_labels|length) %}
-              <td class="percent-cell">{{ "%.1f"|format(percent_matrix[i][j]) }}%</td>
-              {% endfor %}
-            </tr>
+    <div style="overflow-x: auto;">
+      <table class="results-table matrix-table">
+        <thead>
+          <tr>
+            <th>% of respondents >></th>
+            {% for col in col_labels %}
+            <th>{{ col }}</th>
             {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      <div style="overflow-x: auto;">
-        <table class="results-table matrix-table">
-          <thead>
-            <tr>
-              <th># of respondents >></th>
-              {% for col in col_labels %}
-              <th>{{ col }}</th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for i in range(row_labels|length) %}
-            <tr>
-              <td class="row-label">{{ row_labels[i] }}</td>
-              {% for j in range(col_labels|length) %}
-              <td>{{ count_matrix[i][j] }}</td>
-              {% endfor %}
-            </tr>
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in range(row_labels|length) %}
+          <tr>
+            <td class="row-label">{{ row_labels[i] }}</td>
+            {% for j in range(col_labels|length) %}
+            <td class="percent-cell">{{ "%.1f"|format(percent_matrix[i][j]) }}%</td>
             {% endfor %}
-            <tr class="total-row">
-              <td><strong>Total</strong></td>
-              {% for total in col_totals %}
-              <td><strong>{{ total }}</strong></td>
-              {% endfor %}
-            </tr>
-          </tbody>
-        </table>
-      </div>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="results-table matrix-table">
+        <thead>
+          <tr>
+            <th># of respondents >></th>
+            {% for col in col_labels %}
+            <th>{{ col }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in range(row_labels|length) %}
+          <tr>
+            <td class="row-label">{{ row_labels[i] }}</td>
+            {% for j in range(col_labels|length) %}
+            <td>{{ count_matrix[i][j] }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+          <tr class="total-row">
+            <td><strong>Total</strong></td>
+            {% for total in col_totals %}
+            <td><strong>{{ total }}</strong></td>
+            {% endfor %}
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
+</div>
 {% endblock %}

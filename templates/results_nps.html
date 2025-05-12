@@ -1,93 +1,81 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <div class="layout">
-    {% include "components/sidebar_filter.html" %}
+<div class="layout">
+  {% include "components/sidebar_filter.html" %}
+  <div class="content">
+    <form action="/select_columns" method="post" class="go-back">
+      <input type="hidden" name="filename" value="{{ filename }}">
+      <input type="hidden" name="sheet" value="{{ sheet }}">
+      <button type="submit">← Go Back & Reselect Columns</button>
+    </form>
 
-    <div class="content">
-      <form action="/select_columns" method="post" class="go-back">
-        <input type="hidden" name="filename" value="{{ filename }}">
-        <input type="hidden" name="sheet" value="{{ sheet }}">
-        <button type="submit">← Go Back & Reselect Columns</button>
-      </form>
+    <h2>{{ question_text }} - NPS Summary</h2>
 
-      <h2>{{ question_text }} - NPS Summary</h2>
-
-      <h3>NPS Breakdown (Counts & Scores)</h3>
-      <div style="overflow-x: auto;">
-        <table class="results-table matrix-table">
-          <thead>
-            <tr>
-              <th>Category</th>
-              {% for col in col_labels %}
-              <th>{{ col }}</th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="row-label">Promoters</td>
-              {% for val in promoters %}
-              <td>{{ val }}</td>
-              {% endfor %}
-            </tr>
-            <tr>
-              <td class="row-label">Neutrals</td>
-              {% for val in neutrals %}
-              <td>{{ val }}</td>
-              {% endfor %}
-            </tr>
-            <tr>
-              <td class="row-label">Detractors</td>
-              {% for val in detractors %}
-              <td>{{ val }}</td>
-              {% endfor %}
-            </tr>
-            <tr>
-              <td class="row-label">NPS Score</td>
-              {% for val in nps_scores %}
-              <td><strong>{{ val }}%</strong></td>
-              {% endfor %}
-            </tr>
-            <tr>
-              <td class="row-label">Average Score</td>
-              {% for val in average_scores %}
-              <td><strong>{{ val }}</strong></td>
-              {% endfor %}
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h3>Score Distribution by Brand</h3>
-      <div style="overflow-x: auto;">
-        <table class="results-table matrix-table">
-          <thead>
-            <tr>
-              <th>Score</th>
-              {% for col in col_labels %}
-              <th>{{ col }}</th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for score, counts in result_matrix %}
-            <tr>
-              <td class="row-label">{{ score }}</td>
-              {% for count in counts %}
-              <td>{{ count }}</td>
-              {% endfor %}
-            </tr>
+    <div style="overflow-x: auto;">
+      <table class="results-table matrix-table">
+        <thead>
+          <tr>
+            <th style="min-width: 100px;">Category</th>
+            {% for col in col_labels %}
+            <th>{{ col }}</th>
             {% endfor %}
-            <tr class="total-row">
-              <td><strong>Total</strong></td>
-              {% for total in col_totals %}
-              <td><strong>{{ total }}</strong></td>
-              {% endfor %}
-            </tr>
-          </tbody>
-        </table>
-      </div>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="row-label">Promoters</td>
+            {% for val in promoters %}<td>{{ val }}</td>{% endfor %}
+          </tr>
+          <tr>
+            <td class="row-label">Neutrals</td>
+            {% for val in neutrals %}<td>{{ val }}</td>{% endfor %}
+          </tr>
+          <tr>
+            <td class="row-label">Detractors</td>
+            {% for val in detractors %}<td>{{ val }}</td>{% endfor %}
+          </tr>
+          <tr>
+            <td class="row-label">NPS Score</td>
+            {% for val in nps_scores %}<td><strong>{{ val }}%</strong></td>{% endfor %}
+          </tr>
+          <tr>
+            <td class="row-label">Average Score</td>
+            {% for val in average_scores %}<td><strong>{{ val }}</strong></td>{% endfor %}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Score Distribution by Brand</h3>
+    <div style="overflow-x: auto;">
+      <table class="results-table matrix-table">
+        <thead>
+          <tr>
+            <th style="min-width: 100px;">Score</th>
+            {% for col in col_labels %}
+            <th>{{ col }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for score, counts in result_matrix %}
+          <tr>
+            <td class="row-label">{{ score }}</td>
+            {% for count in counts %}
+            <td>{{ count }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+          <tr class="total-row">
+            <td><strong>Total</strong></td>
+            {% for total in col_totals %}
+            <td><strong>{{ total }}</strong></td>
+            {% endfor %}
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
+</div>
 {% endblock %}

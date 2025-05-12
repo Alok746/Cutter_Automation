@@ -1,11 +1,14 @@
-<!DOCTYPE html>
-<html>
-<head><title>Upload Excel</title></head>
-<body>
-    <h1>Upload Excel File</h1>
-    <form method="post" enctype="multipart/form-data">
-        <input type="file" name="excel_file" required>
-        <button type="submit">Upload</button>
-    </form>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}Upload Excel{% endblock %}
+
+{% block content %}
+<div class="content" style="max-width: 600px; margin: 40px auto;">
+  <h1>Upload Excel File</h1>
+  <form method="post" enctype="multipart/form-data" style="background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+    <input type="file" name="excel_file" required style="margin-bottom: 15px;">
+    <br>
+    <button type="submit">Upload</button>
+  </form>
+</div>
+{% endblock %}

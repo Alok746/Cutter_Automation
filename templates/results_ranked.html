@@ -1,74 +1,73 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <div class="layout">
-    {% include "components/sidebar_filter.html" %}
+<div class="layout">
+  {% include "components/sidebar_filter.html" %}
+  <div class="content">
+    <form action="/select_columns" method="post" class="go-back">
+      <input type="hidden" name="filename" value="{{ filename }}">
+      <input type="hidden" name="sheet" value="{{ sheet }}">
+      <button type="submit">← Go Back & Reselect Columns</button>
+    </form>
 
-    <div class="content">
-      <form action="/select_columns" method="post" class="go-back">
-        <input type="hidden" name="filename" value="{{ filename }}">
-        <input type="hidden" name="sheet" value="{{ sheet }}">
-        <button type="submit">← Go Back & Reselect Columns</button>
-      </form>
+    <h2>{{ question_text }} - Ranked Summary</h2>
 
-      <h2>{{ question_text }} - Ranked Summary</h2>
-
-      <div style="overflow-x: auto;">
-        <table class="results-table matrix-table">
-          <thead>
-            <tr>
-              <th>% of respondents >></th>
-              <th>Overall</th>
-              {% for rank in rank_labels %}
-              <th>{{ rank }}</th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for label, overall_pct, percents in percent_matrix %}
-            <tr>
-              <td class="row-label">{{ label }}</td>
-              <td class="percent-cell">{{ "%.1f"|format(overall_pct) }}%</td>
-              {% for pct in percents %}
-              <td class="percent-cell">{{ "%.1f"|format(pct) }}%</td>
-              {% endfor %}
-            </tr>
+    <div style="overflow-x: auto;">
+      <table class="results-table matrix-table">
+        <thead>
+          <tr>
+            <th>% of respondents >></th>
+            <th>Overall</th>
+            {% for rank in rank_labels %}
+            <th>{{ rank }}</th>
             {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      <div style="overflow-x: auto;">
-        <table class="results-table matrix-table">
-          <thead>
-            <tr>
-              <th># of respondents >></th>
-              <th>Overall</th>
-              {% for rank in rank_labels %}
-              <th>{{ rank }}</th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for label, row_total, counts in result_matrix %}
-            <tr>
-              <td class="row-label">{{ label }}</td>
-              <td><strong>{{ row_total }}</strong></td>
-              {% for count in counts %}
-              <td>{{ count }}</td>
-              {% endfor %}
-            </tr>
+          </tr>
+        </thead>
+        <tbody>
+          {% for label, overall_pct, percents in percent_matrix %}
+          <tr>
+            <td class="row-label">{{ label }}</td>
+            <td class="percent-cell">{{ "%.1f"|format(overall_pct) }}%</td>
+            {% for pct in percents %}
+            <td class="percent-cell">{{ "%.1f"|format(pct) }}%</td>
             {% endfor %}
-            <tr class="total-row">
-              <td><strong>Total</strong></td>
-              <td><strong>-</strong></td>
-              {% for total in col_totals %}
-              <td><strong>{{ total }}</strong></td>
-              {% endfor %}
-            </tr>
-          </tbody>
-        </table>
-      </div>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="results-table matrix-table">
+        <thead>
+          <tr>
+            <th># of respondents >></th>
+            <th>Overall</th>
+            {% for rank in rank_labels %}
+            <th>{{ rank }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for label, row_total, counts in result_matrix %}
+          <tr>
+            <td class="row-label">{{ label }}</td>
+            <td><strong>{{ row_total }}</strong></td>
+            {% for count in counts %}
+            <td>{{ count }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+          <tr class="total-row">
+            <td><strong>Total</strong></td>
+            <td><strong>-</strong></td>
+            {% for total in col_totals %}
+            <td><strong>{{ total }}</strong></td>
+            {% endfor %}
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
+</div>
 {% endblock %}
