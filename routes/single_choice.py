@@ -108,5 +108,6 @@ def register_single_choice_routes(app):
             filename=filename,
             sheet=sheet,
             question_code=column,
-            all_columns=all_columns
+            all_columns=all_columns,
+            sort_column_options = []
         )

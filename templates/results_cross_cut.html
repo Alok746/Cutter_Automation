@@ -27,6 +27,7 @@
         .matrix-table {
             border-collapse: collapse;
             margin-bottom: 30px;
+            width: 100%;
         }
 
         .matrix-table th,
@@ -34,12 +35,10 @@
             border: 1px solid #ccc;
             padding: 6px 12px;
             text-align: center;
-            white-space: nowrap;
         }
 
         .matrix-table th {
             background-color: #eee;
-            font-weight: bold;
         }
 
         .total-row td {
@@ -67,7 +66,7 @@
         <button type="submit">← Go Back & Reselect Columns</button>
     </form>
 
-    <h1>Response Summary for {{ question_text }}</h1>
+    <h1>{{ question_text }}</h1>
 
     <table class="matrix-table">
         <thead>

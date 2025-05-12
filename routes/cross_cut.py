@@ -14,7 +14,6 @@ def register_cross_cut_routes(app):
         df = pd.read_excel(filepath, sheet_name=sheet, header=2)
         df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
 
-        # Apply filters
         filter_questions = request.form.getlist("filter_question")
         filter_values = request.form.getlist("filter_value")
         if filter_questions and filter_values:
@@ -39,7 +38,6 @@ def register_cross_cut_routes(app):
         cut_prefix = cut_col.split(":")[0].strip()
         relevant_cols = [col for col in df.columns if col.startswith(f"{base_prefix}:")]
 
-        # Get base options
         base_options = []
         capture = False
         for _, row in df_key.iterrows():
@@ -51,7 +49,6 @@ def register_cross_cut_routes(app):
             if capture and pd.notna(row[1]):
                 base_options.append(str(row[1]).strip())
 
-        # Get cut value map
         cut_value_map = {}
         capture = False
         for _, row in df_key.iterrows():
@@ -66,13 +63,10 @@ def register_cross_cut_routes(app):
         cut_codes = list(cut_value_map.keys())
         cut_labels = list(cut_value_map.values())
 
-        # Total respondents (cut_col not null)
         total_respondents = df[cut_col].notna().sum() if cut_col else 0
 
-        # Column totals from cut column
         cut_totals = [df[df[cut_col] == code].shape[0] for code in cut_codes]
 
-        # Count matrix
         result_matrix = []
         for base_option in base_options:
             row_counts = []
@@ -87,27 +81,36 @@ def register_cross_cut_routes(app):
             row_total = sum(row_counts)
             result_matrix.append((base_option, row_total, row_counts))
 
-        # Percentage matrix
         percent_matrix = []
-        for label, row_total, row_counts in result_matrix:
-            row_percents = [
-                (v / cut_totals[i] * 100) if cut_totals[i] > 0 else 0
-                for i, v in enumerate(row_counts)
-            ]
+        for label, row_total, counts in result_matrix:
+            row_percents = [(v / cut_totals[i] * 100 if cut_totals[i] > 0 else 0) for i, v in enumerate(counts)]
             overall_pct = (row_total / total_respondents * 100) if total_respondents > 0 else 0
             percent_matrix.append((label, overall_pct, row_percents))
 
-        # Sidebar column sort
+        # Sorting logic
+        sort_order = request.form.get("sort_order", "none")
+        sort_column = request.form.get("sort_column", "Overall")
+
+        column_names = ["Overall"] + cut_labels
+        if sort_order in ("asc", "desc") and sort_column in column_names:
+            idx = column_names.index(sort_column)
+            reverse = sort_order == "desc"
+            combined = list(zip(percent_matrix, result_matrix))
+            combined = sorted(
+                combined,
+                key=lambda x: x[0][1] if idx == 0 else x[0][2][idx - 1],
+                reverse=reverse
+            )
+            percent_matrix, result_matrix = zip(*combined)
+            percent_matrix = list(percent_matrix)
+            result_matrix = list(result_matrix)
+
         raw_question_ids = set()
         for col in df.columns:
-            match = re.search(r"(Q\d+)", col)
-            raw_question_ids.add(match.group(1) if match else col.strip())
+            if isinstance(col, str) and re.match(r"Q\d+$", col.strip()):
+                raw_question_ids.add(col.strip())
 
-        def question_sort_key(q):
-            match = re.match(r"Q(\d+)", q)
-            return (0, int(match.group(1))) if match else (1, q.lower())
-
-        all_columns = sorted(raw_question_ids, key=question_sort_key)
+        all_columns = sorted(raw_question_ids, key=lambda x: int(x[1:]))
 
         return render_template(
             'results_cross_cut.html',
@@ -117,6 +120,9 @@ def register_cross_cut_routes(app):
             percent_matrix=percent_matrix,
             total_respondents=total_respondents,
             cut_totals=cut_totals,
+            sort_order=sort_order,
+            sort_column=sort_column,
+            sort_column_options=column_names,
             filename=filename,
             sheet=sheet,
             question_code=base_prefix,

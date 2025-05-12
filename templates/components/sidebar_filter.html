@@ -1,4 +1,4 @@
-<!-- Sidebar: Filter metadata injected as JSON -->
+<!-- Filter state and metadata -->
 <script id="filterData" type="application/json">
 {
     "questions": {{ request.form.getlist("filter_question") | tojson | safe }},
@@ -6,12 +6,11 @@
 }
 </script>
 
-<!-- All column names for dropdowns -->
 <script id="allColumnsData" type="application/json">
     {{ all_columns | tojson | safe }}
 </script>
 
-<!-- Sidebar UI -->
+<!-- Sidebar -->
 <div id="sidebar">
     <button type="button" onclick="addFilter()">+ Add Filter</button>
 
@@ -33,6 +32,17 @@
             <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Ascending</option>
             <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Descending</option>
         </select><br><br>
+
+        {% if sort_column_options %}
+            <div id="sort_column_container" style="display: none;">
+                <label for="sort_column">Sort column:</label><br>
+                <select name="sort_column" id="sort_column">
+                    {% for col in sort_column_options %}
+                        <option value="{{ col }}" {% if sort_column == col %}selected{% endif %}>{{ col }}</option>
+                    {% endfor %}
+                </select><br><br>
+            </div>
+        {% endif %}
 
         <button type="submit">Go</button>
     </form>
@@ -90,6 +100,7 @@
     function loadValues(questionSelect, valueSelect, prefill = "") {
         const question = questionSelect.value;
         const filename = "{{ filename }}";
+
         if (!question) return;
 
         fetch("/get_answer_key_values", {
@@ -99,7 +110,7 @@
         })
         .then(response => response.json())
         .then(data => {
-            valueSelect.innerHTML = '<option value="__all__">All</option>';
+            valueSelect.innerHTML = `<option value="__all__">All</option>`;
             data.forEach(value => {
                 const opt = document.createElement("option");
                 opt.value = value;
@@ -110,16 +121,26 @@
         });
     }
 
+    function toggleSortColumnDropdown() {
+        const sortOrder = document.getElementById("sort_order");
+        const sortColumn = document.getElementById("sort_column_container");
+        if (!sortOrder || !sortColumn) return;
+        sortColumn.style.display = sortOrder.value === "none" ? "none" : "block";
+    }
+
     window.onload = function () {
         const questions = filterData.questions;
         const values = filterData.values;
 
         if (!questions.length) {
-            addFilter();  // start with one
+            addFilter();
         } else {
             for (let i = 0; i < questions.length; i++) {
                 addFilter(questions[i], values[i] || "__all__");
             }
         }
+
+        toggleSortColumnDropdown();
+        document.getElementById("sort_order")?.addEventListener("change", toggleSortColumnDropdown);
     };
 </script>

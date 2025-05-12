@@ -13,15 +13,17 @@ def register_multiple_select_routes(app):
         df = pd.read_excel(filepath, sheet_name=sheet, header=2)
         df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
 
-        # Multi-filter logic
+        base_prefix = column.split(":")[0].strip()
+        relevant_cols = [col for col in df.columns if col.startswith(f"{base_prefix}:")]
+
+        # Filter logic
         filter_questions = request.form.getlist("filter_question")
         filter_values = request.form.getlist("filter_value")
-
         if filter_questions and filter_values:
             for q, v in zip(filter_questions, filter_values):
                 if v == "__all__" or not q:
                     continue
-                filter_code = None
+                code = None
                 capture = False
                 for _, row in df_key.iterrows():
                     if pd.notna(row[0]) and str(row[0]).strip() == q:
@@ -31,12 +33,9 @@ def register_multiple_select_routes(app):
                         break
                     if capture and pd.notna(row[1]):
                         if str(row[1]).strip() == v:
-                            filter_code = row[0]
+                            code = row[0]
                             break
-                df = df[df[q] == filter_code] if filter_code is not None else df[0:0]
-
-        base_prefix = column.split(":")[0].strip()
-        relevant_cols = [col for col in df.columns if col.startswith(f"{base_prefix}:")]
+                df = df[df[q] == code] if code is not None else df[0:0]
 
         answer_labels = []
         capture = False
@@ -52,54 +51,64 @@ def register_multiple_select_routes(app):
             if capture and pd.notna(row[1]):
                 answer_labels.append(str(row[1]).strip())
 
-        total_respondents = len(df)
-
+        total_respondents = df[relevant_cols[0]].notna().sum() if relevant_cols else 0
         response_summary = []
         total_responses = 0
-        for label in answer_labels:
-            match_col = next((col for col in relevant_cols if label in col), None)
-            if match_col:
-                count = (df[match_col] == 1).sum()
-                total_responses += count
-                response_summary.append((label, count))
-            else:
-                response_summary.append((label, 0))
 
-        response_summary_pct = []
+        for label in answer_labels:
+            col_match = next((col for col in relevant_cols if label in col), None)
+            count = (df[col_match] == 1).sum() if col_match else 0
+            total_responses += count
+            response_summary.append((label, count))
+
+        final_data = []
+        percent_respondents = []
         percent_responses = []
 
         for label, count in response_summary:
-            pct_response = (count / total_responses) * 100 if total_responses > 0 else 0
-            pct_respondent = (count / total_respondents) * 100 if total_respondents > 0 else 0
-            response_summary_pct.append((label, count, pct_respondent, pct_response))
-            percent_responses.append(pct_response)
+            pct_respndt = (count / total_respondents * 100) if total_respondents else 0
+            pct_respns = (count / total_responses * 100) if total_responses else 0
+            final_data.append((label, count, pct_respndt, pct_respns))
+            percent_respondents.append(pct_respndt)
+            percent_responses.append(pct_respns)
 
-        min_pct = min(percent_responses) if percent_responses else 0
-        max_pct = max(percent_responses) if percent_responses else 0
-        total_pct_response = sum(percent_responses)
-        total_pct_respondent = sum(pct_respondent for _, _, pct_respondent, _ in response_summary_pct)
+        # Sorting logic
+        sort_order = request.form.get("sort_order", "none")
+        sort_column = request.form.get("sort_column", "")
 
-        raw_question_ids = set()
+        column_map = {
+            "% of respondents": 2,
+            "% of responses": 3
+        }
+
+        if sort_order in ("asc", "desc") and sort_column in column_map:
+            idx = column_map[sort_column]
+            reverse = sort_order == "desc"
+            final_data = sorted(final_data, key=lambda x: x[idx], reverse=reverse)
+
+        sort_column_options = list(column_map.keys())
+
+        # All clean column names for filter dropdown
+        raw_qids = set()
         for col in df.columns:
-            match = re.search(r"(Q\d+)", col)
-            raw_question_ids.add(match.group(1) if match else col.strip())
+            if isinstance(col, str) and re.match(r"Q\d+$", col.strip()):
+                raw_qids.add(col.strip())
 
-        def question_sort_key(q):
-            match = re.match(r"Q(\d+)", q)
-            return (0, int(match.group(1))) if match else (1, q.lower())
-
-        all_columns = sorted(raw_question_ids, key=question_sort_key)
+        all_columns = sorted(raw_qids, key=lambda x: int(x[1:]))
 
         return render_template(
             'results_multiple_select.html',
             question_text=question_text,
-            response_summary=response_summary_pct,
+            response_summary=final_data,
             total_responses=total_responses,
             total_respondents=total_respondents,
-            total_pct_response=total_pct_response,
-            total_pct_respondent=total_pct_respondent,
-            min_pct=min_pct,
-            max_pct=max_pct,
+            total_pct_response=sum(x[3] for x in final_data),
+            total_pct_respondent=sum(x[2] for x in final_data),
+            min_pct=min(percent_responses) if percent_responses else 0,
+            max_pct=max(percent_responses) if percent_responses else 0,
+            sort_order=sort_order,
+            sort_column=sort_column,
+            sort_column_options=sort_column_options,
             filename=filename,
             sheet=sheet,
             question_code=base_prefix,

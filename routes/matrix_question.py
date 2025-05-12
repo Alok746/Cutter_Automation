@@ -13,15 +13,17 @@ def register_matrix_question_routes(app):
         df = pd.read_excel(filepath, sheet_name=sheet, header=2)
         df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
 
-        # Multi-filter logic
+        base_prefix = column.split(":")[0].strip()
+        relevant_cols = [col for col in df.columns if col.startswith(f"{base_prefix}:")]
+
+        # Apply multi-filters
         filter_questions = request.form.getlist("filter_question")
         filter_values = request.form.getlist("filter_value")
-
         if filter_questions and filter_values:
             for q, v in zip(filter_questions, filter_values):
                 if v == "__all__" or not q:
                     continue
-                filter_code = None
+                code = None
                 capture = False
                 for _, row in df_key.iterrows():
                     if pd.notna(row[0]) and str(row[0]).strip() == q:
@@ -31,14 +33,11 @@ def register_matrix_question_routes(app):
                         break
                     if capture and pd.notna(row[1]):
                         if str(row[1]).strip() == v:
-                            filter_code = row[0]
+                            code = row[0]
                             break
-                df = df[df[q] == filter_code] if filter_code is not None else df[0:0]
+                df = df[df[q] == code] if code is not None else df[0:0]
 
-        base_prefix = column.split(":")[0].strip()
-        relevant_cols = [col for col in df.columns if col.startswith(f"{base_prefix}:")]
-
-        # Extract response options (row labels)
+        # Build row label (response options)
         option_map = {}
         capture = False
         question_text = base_prefix
@@ -58,29 +57,38 @@ def register_matrix_question_routes(app):
 
         row_labels = list(option_map.values())
         col_labels = [col.split(":")[1].strip() for col in relevant_cols]
+        col_totals = [df[col].notna().sum() for col in relevant_cols]
 
-        # Create matrices
+        # Build count and percent matrices
         count_matrix = []
         percent_matrix = []
-        col_totals = []
-
-        # Compute column totals (respondents per sub-question)
-        for col in relevant_cols:
-            col_totals.append(df[col].notna().sum())
-
-        # Count and percent matrices
         for code, label in option_map.items():
             row_counts = []
             row_percents = []
             for i, col in enumerate(relevant_cols):
                 count = (df[col].dropna().astype(str).str.strip() == code).sum()
                 row_counts.append(count)
-                percent = (count / col_totals[i]) * 100 if col_totals[i] > 0 else 0
+                percent = (count / col_totals[i]) * 100 if col_totals[i] else 0
                 row_percents.append(percent)
             count_matrix.append(row_counts)
             percent_matrix.append(row_percents)
 
-        # Sorting question IDs
+        # Sorting logic
+        sort_order = request.form.get("sort_order")
+        sort_column = request.form.get("sort_column")
+
+        if sort_order in ("asc", "desc") and sort_column:
+            if sort_column in col_labels:
+                idx = col_labels.index(sort_column)
+                reverse = sort_order == "desc"
+                zipped = list(zip(row_labels, count_matrix, percent_matrix))
+                zipped = sorted(zipped, key=lambda x: x[2][idx], reverse=reverse)
+                row_labels, count_matrix, percent_matrix = zip(*zipped)
+                row_labels = list(row_labels)
+                count_matrix = list(count_matrix)
+                percent_matrix = list(percent_matrix)
+
+        # Collect all question codes for filter dropdown
         raw_question_ids = set()
         for col in df.columns:
             match = re.search(r"(Q\d+)", col)
@@ -100,8 +108,12 @@ def register_matrix_question_routes(app):
             count_matrix=count_matrix,
             percent_matrix=percent_matrix,
             col_totals=col_totals,
+            cut_headers=col_labels,
+            sort_order=sort_order,
+            sort_column=sort_column,
             filename=filename,
             sheet=sheet,
             question_code=base_prefix,
-            all_columns=all_columns
+            all_columns=all_columns,
+            sort_column_options=col_labels
         )
