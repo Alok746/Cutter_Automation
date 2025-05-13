@@ -1,5 +1,7 @@
 from flask import render_template
 import pandas as pd
+import os
+import re
 
 def process_cross_cut(filepath, sheet, column, filters):
     df = pd.read_excel(filepath, sheet_name=sheet, header=2)
@@ -15,6 +17,7 @@ def process_cross_cut(filepath, sheet, column, filters):
     cut_value_map = {}
     capture = False
 
+    # Extract base options from answer key
     for _, row in df_key.iterrows():
         if pd.notna(row[0]) and str(row[0]).strip() == base_prefix:
             capture = True
@@ -24,6 +27,7 @@ def process_cross_cut(filepath, sheet, column, filters):
         if capture and pd.notna(row[1]):
             base_options.append(str(row[1]).strip())
 
+    # Extract cut filter options from answer key
     capture = False
     for _, row in df_key.iterrows():
         if pd.notna(row[0]) and str(row[0]).strip() == cut_prefix:
@@ -57,8 +61,19 @@ def process_cross_cut(filepath, sheet, column, filters):
         overall_pct = (row_total / total_respondents * 100) if total_respondents > 0 else 0
         percent_matrix.append((label, overall_pct, row_percents))
 
-    return render_template(
-        "results_cross_cut.html",
+    # ✅ Clean filename for safe HTML use
+    filename_only = os.path.basename(filepath)
+
+    # ✅ Extract question list for filter dropdown
+    question_columns = []
+    for _, row in df_key.iterrows():
+        if pd.notna(row[0]):
+            code = str(row[0]).strip()
+            if re.match(r'^Q\d+$', code):
+                question_columns.append(code)
+    question_columns = list(dict.fromkeys(question_columns))
+
+    return render_template("results_cross_cut.html",
         question_text=f"Cross cut {column} x {cut_prefix}",
         cut_headers=cut_labels,
         result_matrix=result_matrix,
@@ -68,9 +83,9 @@ def process_cross_cut(filepath, sheet, column, filters):
         sort_order="none",
         sort_column="Overall",
         sort_column_options=["Overall"] + cut_labels,
-        filename=filepath.split('/')[-1],
+        filename=filename_only,
         sheet=sheet,
         question_code=base_prefix,
         cut_column=cut_prefix,
-        all_columns=[]
+        all_columns=question_columns
     )

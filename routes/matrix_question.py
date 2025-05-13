@@ -1,6 +1,7 @@
 from flask import render_template
 import pandas as pd
 import re
+import os
 
 def process_matrix_question(filepath, sheet, column, filters):
     df = pd.read_excel(filepath, sheet_name=sheet, header=2)
@@ -38,7 +39,31 @@ def process_matrix_question(filepath, sheet, column, filters):
         count_matrix.append(row_counts)
         percent_matrix.append(row_percents)
 
-    return render_template("results_matrix.html", question_text=column, row_labels=row_labels, col_labels=col_labels,
-                           count_matrix=count_matrix, percent_matrix=percent_matrix, col_totals=col_totals,
-                           cut_headers=col_labels, sort_order="none", sort_column="", filename=filepath.split('/')[-1],
-                           sheet=sheet, question_code=column, all_columns=[], sort_column_options=col_labels)
+    # ✅ Get clean filename
+    filename_only = os.path.basename(filepath)
+
+    # ✅ Extract all question codes from Answer Key
+    question_columns = []
+    for _, row in df_key.iterrows():
+        if pd.notna(row[0]):
+            code = str(row[0]).strip()
+            if re.match(r'^Q\d+$', code):
+                question_columns.append(code)
+    question_columns = list(dict.fromkeys(question_columns))
+
+    return render_template("results_matrix.html",
+        question_text=column,
+        row_labels=row_labels,
+        col_labels=col_labels,
+        count_matrix=count_matrix,
+        percent_matrix=percent_matrix,
+        col_totals=col_totals,
+        cut_headers=col_labels,
+        sort_order="none",
+        sort_column="",
+        filename=filename_only,
+        sheet=sheet,
+        question_code=column,
+        all_columns=question_columns,
+        sort_column_options=col_labels
+    )

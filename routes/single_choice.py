@@ -1,12 +1,24 @@
 from flask import render_template
 import pandas as pd
 import re
+import os
 
 def process_single_choice(filepath, sheet, column, filters):
     df = pd.read_excel(filepath, sheet_name=sheet, header=2)
     df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
-    print("DEBUG FILTERS:", filters)
-    
+
+    # Get full list of question columns (those present in the answer key)
+    question_columns = []
+    seen = set()
+
+    for _, row in df_key.iterrows():
+        if pd.notna(row[0]):
+            code = str(row[0]).strip()
+            if re.match(r'^Q\d+$', code) and code not in seen:
+                seen.add(code)
+                question_columns.append(code)  # remove duplicates while preserving order
+
+    print("set", question_columns)
     # Apply filters (if any)
     if filters:
         f_questions = filters.get("filter_questions", [])
@@ -61,8 +73,19 @@ def process_single_choice(filepath, sheet, column, filters):
         pct = (count / total * 100) if total else 0
         summary.append((label, count, round(pct, 2)))
 
-    # Render as string
-    return render_template('results.html', question_text=question_text, response_summary=summary,
-                           total_count=total, total_pct=100, min_pct=0, max_pct=100,
-                           sort_order='none', filename=filepath.split('/')[-1], sheet=sheet,
-                           question_code=column, all_columns=[], sort_column_options=[])
+    filename_only = os.path.basename(filepath)
+
+    return render_template('results.html',
+        question_text=question_text,
+        response_summary=summary,
+        total_count=total,
+        total_pct=100,
+        min_pct=0,
+        max_pct=100,
+        sort_order='none',
+        filename=filename_only,
+        sheet=sheet,
+        question_code=column,
+        all_columns=question_columns,  # ✅ Pass full list of questions here
+        sort_column_options=[]
+    )

@@ -1,6 +1,7 @@
 from flask import render_template
 import pandas as pd
 import re
+import os
 
 def process_multi_select(filepath, sheet, column, filters):
     df = pd.read_excel(filepath, sheet_name=sheet, header=2)
@@ -39,10 +40,30 @@ def process_multi_select(filepath, sheet, column, filters):
         pct_response = (count / total_responses * 100) if total_responses else 0
         final_data.append((label, count, pct_respondent, pct_response))
 
-    return render_template("results_multiple_select.html", question_text=question_text,
-                           response_summary=final_data, total_responses=total_responses,
-                           total_respondents=total_respondents,
-                           total_pct_response=100, total_pct_respondent=100,
-                           min_pct=0, max_pct=100, sort_order="none", sort_column="",
-                           sort_column_options=[], filename=filepath.split('/')[-1],
-                           sheet=sheet, question_code=column, all_columns=[])
+    filename_only = os.path.basename(filepath)
+
+    question_columns = []
+    for _, row in df_key.iterrows():
+        if pd.notna(row[0]):
+            code = str(row[0]).strip()
+            if re.match(r'^Q\d+$', code):
+                question_columns.append(code)
+    question_columns = list(dict.fromkeys(question_columns))
+
+    return render_template("results_multiple_select.html",
+        question_text=question_text,
+        response_summary=final_data,
+        total_responses=total_responses,
+        total_respondents=total_respondents,
+        total_pct_response=100,
+        total_pct_respondent=100,
+        min_pct=0,
+        max_pct=100,
+        sort_order="none",
+        sort_column="",
+        sort_column_options=[],
+        filename=filename_only,
+        sheet=sheet,
+        question_code=column,
+        all_columns=question_columns
+    )

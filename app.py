@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, request, jsonify, render_template
 import os
 import pandas as pd
 import re
@@ -124,6 +124,45 @@ def compare_multi_questions():
     results.sort(key=lambda r: int(r['question'][1:]) if r['question'].startswith('Q') else 999)
     all_columns = sorted({row['question'] for row in results})
     return render_template('display_multi_results.html', results=results, filename=filename, sheet=sheet,all_columns = all_columns)
+
+@app.route("/get_answer_key_values", methods=["POST"])
+def get_answer_key_values():
+    import os
+    from flask import request, jsonify
+    import pandas as pd
+
+    filename = request.form.get("filename")
+    question = request.form.get("question")
+
+    if not filename or not question:
+        return jsonify([])
+
+    try:
+        filepath = os.path.join("uploads", filename)
+        df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
+
+        values = []
+        capture = False
+
+        for _, row in df_key.iterrows():
+            cell_a = str(row[0]).strip() if pd.notna(row[0]) else ""
+            cell_b = str(row[1]).strip() if pd.notna(row[1]) else ""
+
+            if cell_a == question:
+                capture = True
+                continue
+
+            if capture and cell_a.startswith("Q"):  # next question block
+                break
+
+            if capture and cell_b:
+                values.append(cell_b)
+
+        return jsonify(values)
+
+    except Exception as e:
+        print("Error in get_answer_key_values:", e)
+        return jsonify([])
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

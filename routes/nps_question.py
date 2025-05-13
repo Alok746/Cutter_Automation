@@ -1,6 +1,7 @@
 from flask import render_template
 import pandas as pd
 import re
+import os
 
 def process_nps_question(filepath, sheet, column, filters):
     df = pd.read_excel(filepath, sheet_name=sheet, header=2)
@@ -31,9 +32,29 @@ def process_nps_question(filepath, sheet, column, filters):
         for col in brand_columns
     ]
 
-    return render_template("results_nps.html", question_text=f"NPS Summary for {base_prefix}",
-                           row_labels=row_labels, col_labels=col_labels, result_matrix=result_matrix,
-                           col_totals=col_totals, promoters=promoters, neutrals=neutrals,
-                           detractors=detractors, nps_scores=nps_scores, average_scores=average_scores,
-                           filename=filepath.split('/')[-1], sheet=sheet,
-                           question_code=base_prefix, all_columns=[])
+    filename_only = os.path.basename(filepath)
+
+    question_columns = []
+    for _, row in df_key.iterrows():
+        if pd.notna(row[0]):
+            code = str(row[0]).strip()
+            if re.match(r'^Q\d+$', code):
+                question_columns.append(code)
+    question_columns = list(dict.fromkeys(question_columns))
+
+    return render_template("results_nps.html",
+        question_text=f"NPS Summary for {base_prefix}",
+        row_labels=row_labels,
+        col_labels=col_labels,
+        result_matrix=result_matrix,
+        col_totals=col_totals,
+        promoters=promoters,
+        neutrals=neutrals,
+        detractors=detractors,
+        nps_scores=nps_scores,
+        average_scores=average_scores,
+        filename=filename_only,
+        sheet=sheet,
+        question_code=base_prefix,
+        all_columns=question_columns
+    )
