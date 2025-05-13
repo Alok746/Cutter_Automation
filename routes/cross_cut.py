@@ -1,131 +1,76 @@
-from flask import request, render_template
+from flask import render_template
 import pandas as pd
-import re
 
-def register_cross_cut_routes(app):
-    @app.route('/compare_cross_cut', methods=['POST'])
-    def compare_cross_cut():
-        filename = request.form['filename']
-        sheet = request.form['sheet']
-        base_col = request.form['column']
-        cut_col = request.form.get("cut_column")
-        filepath = f'uploads/{filename}'
+def process_cross_cut(filepath, sheet, column, filters):
+    df = pd.read_excel(filepath, sheet_name=sheet, header=2)
+    df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
 
-        df = pd.read_excel(filepath, sheet_name=sheet, header=2)
-        df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
+    base_prefix = column.split(":")[0].strip()
+    cut_col = filters.get("cut_column", "")
+    cut_prefix = cut_col.split(":")[0].strip() if cut_col else ""
 
-        filter_questions = request.form.getlist("filter_question")
-        filter_values = request.form.getlist("filter_value")
-        if filter_questions and filter_values:
-            for q, v in zip(filter_questions, filter_values):
-                if v == "__all__" or not q:
-                    continue
-                filter_code = None
-                capture = False
-                for _, row in df_key.iterrows():
-                    if pd.notna(row[0]) and str(row[0]).strip() == q:
-                        capture = True
-                        continue
-                    if capture and pd.isna(row[0]):
-                        break
-                    if capture and pd.notna(row[1]):
-                        if str(row[1]).strip() == v:
-                            filter_code = row[0]
-                            break
-                df = df[df[q] == filter_code] if filter_code is not None else df[0:0]
+    relevant_cols = [col for col in df.columns if col.startswith(f"{base_prefix}:")]
 
-        base_prefix = base_col.split(":")[0].strip()
-        cut_prefix = cut_col.split(":")[0].strip()
-        relevant_cols = [col for col in df.columns if col.startswith(f"{base_prefix}:")]
+    base_options = []
+    cut_value_map = {}
+    capture = False
 
-        base_options = []
-        capture = False
-        for _, row in df_key.iterrows():
-            if pd.notna(row[0]) and str(row[0]).strip() == base_prefix:
-                capture = True
-                continue
-            if capture and pd.isna(row[0]):
-                break
-            if capture and pd.notna(row[1]):
-                base_options.append(str(row[1]).strip())
+    for _, row in df_key.iterrows():
+        if pd.notna(row[0]) and str(row[0]).strip() == base_prefix:
+            capture = True
+            continue
+        if capture and pd.isna(row[0]):
+            break
+        if capture and pd.notna(row[1]):
+            base_options.append(str(row[1]).strip())
 
-        cut_value_map = {}
-        capture = False
-        for _, row in df_key.iterrows():
-            if pd.notna(row[0]) and str(row[0]).strip() == cut_prefix:
-                capture = True
-                continue
-            if capture and pd.isna(row[0]):
-                break
-            if capture and pd.notna(row[0]) and pd.notna(row[1]):
-                cut_value_map[row[0]] = str(row[1]).strip()
+    capture = False
+    for _, row in df_key.iterrows():
+        if pd.notna(row[0]) and str(row[0]).strip() == cut_prefix:
+            capture = True
+            continue
+        if capture and pd.isna(row[0]):
+            break
+        if capture and pd.notna(row[0]) and pd.notna(row[1]):
+            cut_value_map[row[0]] = str(row[1]).strip()
 
-        cut_codes = list(cut_value_map.keys())
-        cut_labels = list(cut_value_map.values())
+    cut_codes = list(cut_value_map.keys())
+    cut_labels = list(cut_value_map.values())
+    total_respondents = df[cut_col].notna().sum() if cut_col else 0
 
-        total_respondents = df[cut_col].notna().sum() if cut_col else 0
+    cut_totals = [df[df[cut_col] == code].shape[0] for code in cut_codes]
+    result_matrix = []
 
-        cut_totals = [df[df[cut_col] == code].shape[0] for code in cut_codes]
+    for base_option in base_options:
+        row_counts = []
+        match_col = next((col for col in relevant_cols if base_option in col), None)
+        for cut_val in cut_codes:
+            filtered = df[df[cut_col] == cut_val]
+            count = filtered[match_col].notna().sum() if match_col else 0
+            row_counts.append(count)
+        row_total = sum(row_counts)
+        result_matrix.append((base_option, row_total, row_counts))
 
-        result_matrix = []
-        for base_option in base_options:
-            row_counts = []
-            match_col = next((col for col in relevant_cols if base_option in col), None)
-            if match_col:
-                for cut_val in cut_codes:
-                    filtered = df[df[cut_col] == cut_val]
-                    count = filtered[match_col].notna().sum()
-                    row_counts.append(count)
-            else:
-                row_counts = [0] * len(cut_codes)
-            row_total = sum(row_counts)
-            result_matrix.append((base_option, row_total, row_counts))
+    percent_matrix = []
+    for label, row_total, counts in result_matrix:
+        row_percents = [(v / cut_totals[i] * 100 if cut_totals[i] > 0 else 0) for i, v in enumerate(counts)]
+        overall_pct = (row_total / total_respondents * 100) if total_respondents > 0 else 0
+        percent_matrix.append((label, overall_pct, row_percents))
 
-        percent_matrix = []
-        for label, row_total, counts in result_matrix:
-            row_percents = [(v / cut_totals[i] * 100 if cut_totals[i] > 0 else 0) for i, v in enumerate(counts)]
-            overall_pct = (row_total / total_respondents * 100) if total_respondents > 0 else 0
-            percent_matrix.append((label, overall_pct, row_percents))
-
-        # Sorting logic
-        sort_order = request.form.get("sort_order", "none")
-        sort_column = request.form.get("sort_column", "Overall")
-
-        column_names = ["Overall"] + cut_labels
-        if sort_order in ("asc", "desc") and sort_column in column_names:
-            idx = column_names.index(sort_column)
-            reverse = sort_order == "desc"
-            combined = list(zip(percent_matrix, result_matrix))
-            combined = sorted(
-                combined,
-                key=lambda x: x[0][1] if idx == 0 else x[0][2][idx - 1],
-                reverse=reverse
-            )
-            percent_matrix, result_matrix = zip(*combined)
-            percent_matrix = list(percent_matrix)
-            result_matrix = list(result_matrix)
-
-        raw_question_ids = set()
-        for col in df.columns:
-            if isinstance(col, str) and re.match(r"Q\d+$", col.strip()):
-                raw_question_ids.add(col.strip())
-
-        all_columns = sorted(raw_question_ids, key=lambda x: int(x[1:]))
-
-        return render_template(
-            'results_cross_cut.html',
-            question_text=f"{base_prefix} x {cut_prefix}",
-            cut_headers=cut_labels,
-            result_matrix=result_matrix,
-            percent_matrix=percent_matrix,
-            total_respondents=total_respondents,
-            cut_totals=cut_totals,
-            sort_order=sort_order,
-            sort_column=sort_column,
-            sort_column_options=column_names,
-            filename=filename,
-            sheet=sheet,
-            question_code=base_prefix,
-            cut_column=cut_prefix,
-            all_columns=all_columns
-        )
+    return render_template(
+        "results_cross_cut.html",
+        question_text=f"Cross cut {column} x {cut_prefix}",
+        cut_headers=cut_labels,
+        result_matrix=result_matrix,
+        percent_matrix=percent_matrix,
+        total_respondents=total_respondents,
+        cut_totals=cut_totals,
+        sort_order="none",
+        sort_column="Overall",
+        sort_column_options=["Overall"] + cut_labels,
+        filename=filepath.split('/')[-1],
+        sheet=sheet,
+        question_code=base_prefix,
+        cut_column=cut_prefix,
+        all_columns=[]
+    )

@@ -4,6 +4,14 @@ import pandas as pd
 import re
 import json
 
+# Import processing functions instead of route registration
+from routes.single_choice import process_single_choice
+from routes.matrix_question import process_matrix_question
+from routes.multiple_select import process_multi_select
+from routes.cross_cut import process_cross_cut
+from routes.rank_based import process_ranked_question
+from routes.nps_question import process_nps_question
+
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
@@ -24,9 +32,9 @@ def route_selector():
     filename = request.form['filename']
     sheet = request.form['sheet']
     mode = request.form['view_mode']
-    
+
     if mode == 'multi':
-        return render_template('select_questions.html', filename=filename, sheet=sheet)
+        return render_template('select_columns.html', filename=filename, sheet=sheet, columns=[])
     else:
         return select_columns()
 
@@ -36,77 +44,86 @@ def select_columns():
     sheet = request.form['sheet']
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     df = pd.read_excel(filepath, sheet_name=sheet, header=2)
-    all_cols = df.columns.tolist()
-
-    question_ids = set()
-    for col in all_cols:
-        match = re.search(r"(Q\d+)", col)
-        if match:
-            question_ids.add(match.group(1))
-        else:
-            question_ids.add(col.strip())
-
-    def question_sort_key(q):
-        match = re.match(r"Q(\d+)", q)
-        return (0, int(match.group(1))) if match else (1, q.lower())
-
-    columns = sorted(question_ids, key=question_sort_key)
-    return render_template('select_columns.html', filename=filename, sheet=sheet, columns=columns)
-
-@app.route('/get_answer_key_values', methods=['POST'])
-def get_answer_key_values():
-    filename = request.form['filename']
-    question = request.form['question']
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
 
-    values = []
-    capture = False
+    data_columns = set()
+    for col in df.columns:
+        if isinstance(col, str):
+            match = re.search(r"(Q\d+)", col)
+            if match:
+                data_columns.add(match.group(1))
+
+    question_map = {}
     for _, row in df_key.iterrows():
-        if pd.notna(row[0]) and str(row[0]).strip() == question.strip():
-            capture = True
-            continue
-        if capture and pd.isna(row[0]):
-            break
-        if capture and pd.notna(row[1]):
-            values.append(str(row[1]).strip())
+        if pd.notna(row[0]) and pd.notna(row[1]):
+            qid_match = re.match(r"(Q\d+)", str(row[0]).strip())
+            if qid_match:
+                question_map[qid_match.group(1)] = str(row[1]).strip()
 
-    return json.dumps(values)
+    columns = sorted(data_columns.intersection(set(question_map.keys())), key=lambda q: int(q[1:]))
+    question_pairs = [(qid, question_map[qid]) for qid in columns]
 
-@app.route('/select_questions', methods=['POST'])
-def select_questions():
+    return render_template('select_columns.html', filename=filename, sheet=sheet, question_pairs=question_pairs)
+
+@app.route('/compare_multi_questions', methods=['POST'])
+def compare_multi_questions():
     filename = request.form['filename']
     sheet = request.form['sheet']
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
     df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
 
-    questions = []
-    for _, row in df_key.iterrows():
-        if pd.notna(row[0]) and pd.isna(row[1]):
-            questions.append(str(row[0]).strip())
+    questions = [key.replace("include_", "") for key in request.form.keys() if key.startswith("include_")]
 
-    return render_template(
-        'select_questions.html',
-        filename=filename,
-        sheet=sheet,
-        questions=questions
-    )
+    results = []
+    for q in questions:
+        types = request.form.getlist(f"type_{q}")
+        for q_type in types:
+            cut_col = request.form.get(f'cut_column_{q}') or ''
+            max_rank = request.form.get(f'max_rank_{q}') or ''
 
-# Register routes
-from routes.single_choice import register_single_choice_routes
-from routes.matrix_question import register_matrix_question_routes
-from routes.multiple_select import register_multiple_select_routes
-from routes.cross_cut import register_cross_cut_routes
-from routes.rank_based import register_ranked_question_routes
-from routes.nps_question import register_nps_question_routes
+            filters = {
+                'filter_questions': request.form.getlist('filter_question'),
+                'filter_values': request.form.getlist('filter_value'),
+                'cut_column': cut_col,
+                'max_rank': max_rank
+            }
 
-register_nps_question_routes(app)
-register_ranked_question_routes(app)
-register_single_choice_routes(app)
-register_matrix_question_routes(app)
-register_multiple_select_routes(app)
-register_cross_cut_routes(app)
+            try:
+                if q_type == 'cross_cut' and cut_col:
+                    html = process_cross_cut(filepath, sheet, q, filters)
+                    question_text = None  # suppress question text in header for cross cut
+                elif q_type == 'single_choice':
+                    html = process_single_choice(filepath, sheet, q, filters)
+                elif q_type == 'matrix':
+                    html = process_matrix_question(filepath, sheet, q, filters)
+                elif q_type == 'multi_select':
+                    html = process_multi_select(filepath, sheet, q, filters)
+                elif q_type == 'ranked':
+                    filters['max_rank'] = max_rank
+                    html = process_ranked_question(filepath, sheet, q, filters)
+                elif q_type == 'nps':
+                    html = process_nps_question(filepath, sheet, q, filters)
+                else:
+                    html = f"<p>Unsupported or incomplete type for {q}</p>"
+
+                if q_type != 'cross_cut':
+                    question_text = None
+                    for _, row in df_key.iterrows():
+                        if str(row[0]).strip() == q and pd.notna(row[1]):
+                            question_text = str(row[1]).strip()
+                            break
+
+                results.append({'question': q, 'text': question_text, 'html': html})
+
+            except Exception as e:
+                html = f"<p>Error processing {q} ({q_type}): {str(e)}</p>"
+                question_text = f"{q} - {q_type}"
+                results.append({'question': q, 'text': question_text, 'html': html})
+
+    results.sort(key=lambda r: int(r['question'][1:]) if r['question'].startswith('Q') else 999)
+    all_columns = sorted({row['question'] for row in results})
+    return render_template('display_multi_results.html', results=results, filename=filename, sheet=sheet,all_columns = all_columns)
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

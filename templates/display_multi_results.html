@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form method="post" action="/compare_multi_questions">
+  <input type="hidden" name="filename" value="{{ filename }}">
+  <input type="hidden" name="sheet" value="{{ sheet }}">
+
+  <div class="layout">
+    {% include "components/sidebar_filter.html" %}
+    <div class="content">
+      <h1>Combined Results for Selected Questions</h1>
+
+      {% for item in results %}
+      <div class="question-result" style="margin-bottom: 40px; border: 1px solid #ccc; padding: 20px; border-radius: 8px; background-color: #f9f9f9;">
+        <h2 style="margin-bottom: 10px;">{{ item.question }}{% if item.text %}: {{ item.text }}{% endif %}</h2>
+        <div>{{ item.html | safe }}</div>
+      </div>
+      {% endfor %}
+
+      <div style="margin-top: 2rem;">
+        <button type="submit" style="padding: 10px 16px; font-size: 14px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+          Apply Filter & Sort
+        </button>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

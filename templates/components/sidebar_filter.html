@@ -7,7 +7,7 @@
 </script>
 
 <script id="allColumnsData" type="application/json">
-    {{ all_columns | tojson | safe }}
+    {{ all_columns | default([]) | tojson | safe }}
 </script>
 
 <!-- Sidebar -->

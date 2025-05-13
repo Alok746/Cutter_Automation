@@ -1,173 +1,75 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Select Column</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #fafafa;
-            margin: 0;
-            padding: 30px;
-            color: #333;
-        }
+{% extends "base.html" %}
 
-        h1 {
-            margin-bottom: 20px;
-            font-size: 24px;
-        }
+{% block content %}
+<div class="content" style="padding: 2rem;">
+  <h1>Select Questions from Sheet: {{ sheet }}</h1>
 
-        form {
-            background-color: #fff;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-            max-width: 600px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 6px;
-        }
-
-        select,
-        input[type="number"],
-        input[type="text"] {
-            width: 100%;
-            padding: 8px;
-            font-size: 14px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        .checkbox-group label {
-            font-weight: normal;
-            display: block;
-            margin-bottom: 6px;
-        }
-
-        .optional-section {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-        }
-
-        button {
-            padding: 10px 16px;
-            font-size: 14px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        .error {
-            color: red;
-            margin-bottom: 15px;
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
-
-<h1>Select a Column from Sheet: {{ sheet }}</h1>
-
-{% if error_message %}
-    <div class="error">{{ error_message }}</div>
-{% endif %}
-
-<form id="columnForm" method="post" onsubmit="setFormAction()">
+  <form method="post" action="/compare_multi_questions">
     <input type="hidden" name="filename" value="{{ filename }}">
     <input type="hidden" name="sheet" value="{{ sheet }}">
 
-    <div class="form-group">
-        <label for="column">Choose a question column:</label>
-        <select name="column" id="column" required>
-            {% for col in columns %}
-                <option value="{{ col }}">{{ col }}</option>
-            {% endfor %}
-        </select>
+    <div style="margin-bottom: 1rem;">
+      <label><input type="checkbox" id="select-all" checked> <strong>Select/Deselect All</strong></label>
     </div>
 
-    <div class="form-group">
-        <label>Question Type:</label>
-        <div class="checkbox-group">
-            <label><input type="checkbox" name="single_choice" id="single_choice" value="yes" checked onclick="toggleCheckbox(this)"> Single Choice</label>
-            <label><input type="checkbox" name="matrix_question" id="matrix_question" value="yes" onclick="toggleCheckbox(this)"> Matrix-type</label>
-            <label><input type="checkbox" name="multiple_choice" id="multiple_choice" value="yes" onclick="toggleCheckbox(this)"> Multiple-choice (binary)</label>
-            <label><input type="checkbox" name="cross_cut" id="cross_cut" value="yes" onclick="toggleCheckbox(this)"> 2D Cross Cut</label>
-            <label><input type="checkbox" name="ranked_question" id="ranked_question" value="yes" onclick="toggleCheckbox(this)"> Ranked Question</label>
-            <label><input type="checkbox" name="nps_question" id="nps_question" value="yes" onclick="toggleCheckbox(this)"> NPS Question</label>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      {% for qid, qtext in question_pairs %}
+      <div style="background: #fff; border: 1px solid #ccc; padding: 16px; border-radius: 6px;">
+        <div style="margin-bottom: 10px; font-size: 15px;">
+          <label>
+            <input type="checkbox" name="include_{{ qid }}" class="question-checkbox" checked>
+            <strong>{{ qid }}:</strong>
+          </label>
+          {{ qtext }}
         </div>
+        <div class="question-types">
+          <label><input type="checkbox" name="type_{{ qid }}" value="single_choice"> Single Choice</label>
+          <label><input type="checkbox" name="type_{{ qid }}" value="matrix"> Matrix</label>
+          <label><input type="checkbox" name="type_{{ qid }}" value="multi_select"> Multi-Select</label>
+          <label>
+            <input type="checkbox" name="type_{{ qid }}" value="cross_cut" onchange="toggleCutDropdown(this, '{{ qid }}')"> Cross Cut
+            <select name="cut_column_{{ qid }}" id="cut_{{ qid }}" style="display: none; margin-left: 8px;">
+              {% for col in question_pairs %}
+              <option value="{{ col[0] }}">{{ col[0] }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>
+            <input type="checkbox" name="type_{{ qid }}" value="ranked" onchange="toggleRankInput(this, '{{ qid }}')"> Ranked
+            <input type="number" name="max_rank_{{ qid }}" id="rank_{{ qid }}" min="1" max="10" style="display: none; margin-left: 8px; width: 60px;">
+          </label>
+          <label><input type="checkbox" name="type_{{ qid }}" value="nps"> NPS</label>
+        </div>
+      </div>
+      {% endfor %}
     </div>
 
-    <div class="optional-section" id="cutDropdown" style="display: none;">
-        <label for="cut_column">Choose column to cross with:</label>
-        <select name="cut_column" id="cut_column">
-            {% for col in columns %}
-                <option value="{{ col }}">{{ col }}</option>
-            {% endfor %}
-        </select>
-    </div>
-
-    <div class="optional-section" id="rankTextbox" style="display: none;">
-        <label for="max_rank">Show Top N Ranks:</label>
-        <input type="number" id="max_rank" name="max_rank" min="1" max="10" value="3">
-    </div>
-
-    <br>
-    <button type="submit">Show Results</button>
-</form>
+    <br><button type="submit">Generate Results</button>
+  </form>
+</div>
 
 <script>
-    function toggleCheckbox(clicked) {
-        const all = [
-            'single_choice',
-            'matrix_question',
-            'multiple_choice',
-            'cross_cut',
-            'ranked_question',
-            'nps_question'
-        ];
-        all.forEach(id => {
-            if (id !== clicked.id) {
-                document.getElementById(id).checked = false;
-            }
-        });
+  document.getElementById('select-all').addEventListener('change', function () {
+    const allCheckboxes = document.querySelectorAll('.question-checkbox');
+    allCheckboxes.forEach(cb => cb.checked = this.checked);
+  });
 
-        document.getElementById("cutDropdown").style.display = document.getElementById("cross_cut").checked ? "block" : "none";
-        document.getElementById("rankTextbox").style.display = document.getElementById("ranked_question").checked ? "block" : "none";
+  function toggleRankInput(checkbox, qid) {
+    const input = document.getElementById(`rank_${qid}`);
+    if (checkbox.checked) {
+      input.style.display = 'inline-block';
+    } else {
+      input.style.display = 'none';
     }
+  }
 
-    function setFormAction() {
-        const form = document.getElementById("columnForm");
-
-        if (document.getElementById("cross_cut").checked) {
-            form.action = "{{ url_for('compare_cross_cut') }}";
-        } else if (document.getElementById("matrix_question").checked) {
-            form.action = "{{ url_for('compare_matrix_question') }}";
-        } else if (document.getElementById("multiple_choice").checked) {
-            form.action = "{{ url_for('compare_multiple_select') }}";
-        } else if (document.getElementById("ranked_question").checked) {
-            form.action = "{{ url_for('compare_ranked') }}";
-        } else if (document.getElementById("nps_question").checked) {
-            form.action = "{{ url_for('compare_nps') }}";
-        } else {
-            form.action = "{{ url_for('compare_answers') }}"; // default
-        }
+  function toggleCutDropdown(checkbox, qid) {
+    const dropdown = document.getElementById(`cut_${qid}`);
+    if (checkbox.checked) {
+      dropdown.style.display = 'inline-block';
+    } else {
+      dropdown.style.display = 'none';
     }
+  }
 </script>
-
-</body>
-</html>
+{% endblock %}
