@@ -1,12 +1,13 @@
 from flask import render_template
 import pandas as pd
 import re
+from utils import apply_global_filters
 import os
 
 def process_nps_question(filepath, sheet, column, filters):
     df = pd.read_excel(filepath, sheet_name=sheet, header=2)
     df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
-
+    df = apply_global_filters(df, df_key, filters)
     base_prefix = column.split("|")[0].strip()
     relevant_cols = [col for col in df.columns if col.startswith(f"{base_prefix} |")]
     col_labels = [col.split("|")[1].strip() for col in relevant_cols]

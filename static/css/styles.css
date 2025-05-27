@@ -1,19 +1,17 @@
-/* Layout container for sidebar + content */
+/* ------------------------
+   Layout and Containers
+------------------------ */
+body {
+  background: linear-gradient(135deg, #fff2f2, #ffe6e6);
+  background-attachment: fixed;
+  font-family: 'Segoe UI', sans-serif;
+}
+
 .layout {
   display: flex;
   min-height: 100vh;
 }
 
-/* Sidebar styling */
-.sidebar {
-  width: 250px;
-  background-color: #f4f4f4;
-  padding: 1rem;
-  border-right: 1px solid #ccc;
-  box-sizing: border-box;
-}
-
-/* Main content area */
 .content {
   flex-grow: 1;
   padding: 2rem;
@@ -21,7 +19,131 @@
   overflow-x: auto;
 }
 
-/* Table styling */
+.sidebar {
+  width: 22%;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: fit-content;
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #ddd;
+  margin-right: 2rem;
+}
+
+.sidebar h3 {
+  font-size: 1.2rem;
+  margin-top: 0;
+  color: #cc0000;
+  border-bottom: 1px solid #f2c2c2;
+  padding-bottom: 4px;
+  margin-bottom: 1rem;
+}
+
+.sidebar button,
+.sidebar select {
+  width: 100%;
+  padding: 10px;
+  font-size: 0.9rem;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  margin-bottom: 1rem;
+}
+
+.sidebar button {
+  background-color: #cc0000;
+  color: white;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar button:hover {
+  background-color: #a60000;
+}
+
+/* ------------------------
+   Upload Section
+------------------------ */
+.upload-box {
+  border: 2px dashed #cc0000;
+  background-color: #fff5f5;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+}
+
+.upload-box.dragover {
+  background-color: #ffeaea;
+}
+
+.upload-icon {
+  font-size: 2.5rem;
+  color: #cc0000;
+  margin-bottom: 10px;
+}
+
+.upload-preview {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #fff0f0;
+  border: 1px solid #cc0000;
+  border-radius: 6px;
+  text-align: left;
+}
+
+.upload-preview strong {
+  color: #cc0000;
+}
+
+/* ------------------------
+   Buttons
+------------------------ */
+.btn-red,
+.btn-success {
+  background-color: #cc0000 !important;
+  border: none;
+  color: white;
+}
+
+.btn-red:hover,
+.btn-success:hover {
+  background-color: #a60000 !important;
+}
+
+.form-actions {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.form-actions button {
+  background-color: #cc0000;
+  border: none;
+  color: white;
+  padding: 12px 28px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.form-actions button:hover {
+  background-color: #a60000;
+}
+
+.go-back button {
+  background: #eee;
+  border: 1px solid #ccc;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+/* ------------------------
+   Results Table
+------------------------ */
 .results-table {
   width: 100%;
   border-collapse: collapse;
@@ -67,6 +189,9 @@
   font-weight: bold;
 }
 
+/* ------------------------
+   NPS KPI Cards
+------------------------ */
 .nps-summary {
   display: flex;
   gap: 1rem;
@@ -81,18 +206,114 @@
   text-align: center;
 }
 
-.go-back button {
-  background: #eee;
-  border: 1px solid #ccc;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
+/* ------------------------
+   Global Filter Toggles
+------------------------ */
+.value-wrapper.hide {
+  display: none;
 }
 
-/* Ensure dropdown fits inside sidebar */
-.sidebar select,
-.sidebar button {
-  max-width: 100%;
-  width: 100%;
-  box-sizing: border-box;
+.value-wrapper.show {
+  display: block;
+}
+
+/* ------------------------
+   Select Columns: Question Cards
+------------------------ */
+.question-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* Cards stretch to fill grid cell */
+.question-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  background: #fff;
+  border: 1px solid #f1c0c0;
+  border-left: 5px solid #cc0000;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 5px rgba(204, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease;
+}
+
+.question-card {
+  background: #fff;
+  border: 1px solid #f1c0c0;
+  border-left: 5px solid #cc0000;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 5px rgba(204, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease;
+}
+
+.question-card:hover {
+  box-shadow: 0 4px 12px rgba(204, 0, 0, 0.1);
+}
+
+.question-title {
+  font-weight: 600;
   margin-bottom: 10px;
+}
+
+/* Question Type Buttons */
+.question-types {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 per row */
+  gap: 10px 16px;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.question-types label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  background-color: #fff;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid #f1f1f1;
+}
+
+/* Cross Cut and Ranked Dropdown/Input */
+.question-types select,
+.question-types input[type="number"] {
+  padding: 4px 6px;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  min-width: 60px;
+  background: #fff5f5;
+  transition: border 0.2s ease;
+}
+
+.question-types select:focus,
+.question-types input[type="number"]:focus {
+  border-color: #cc0000;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(204, 0, 0, 0.2);
+}
+
+.hidden-input {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: visibility 0.2s ease, opacity 0.2s ease;
+}
+
+.visible-input {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #cc0000;
 }

@@ -1,107 +1,167 @@
-<script id="filterData_{{ question_code }}_filter" type="application/json">
-{
-  "questions": {{ request.form.getlist("filter_question") | tojson | safe }},
-  "values": {{ request.form.getlist("filter_value") | tojson | safe }}
-}
-</script>
-
-<script id="allColumnsData_{{ question_code }}_filter" type="application/json">
-  {{ all_columns | tojson | safe }}
-</script>
-
-<div id="sidebar_{{ question_code }}_filter" class="sidebar">
-  <button type="button" onclick="addFilter('{{ question_code }}_filter')">+ Add Filter</button>
-
-  <form method="post" action="{{ request.path }}">
+<div class="sidebar">
+  <form method="post" action="/compare_multi_questions" id="globalFilterForm">
     <input type="hidden" name="filename" value="{{ filename }}">
     <input type="hidden" name="sheet" value="{{ sheet }}">
-    <input type="hidden" name="column" value="{{ question_code }}">
+    <input type="hidden" name="filter_count" id="filter-count" value="{{ filter_questions|length if filter_questions else 0 }}">
 
-    <div id="filters_{{ question_code }}_filter"></div>
+    <!-- ✅ Re-include selected questions, types (de-duplicated), and cut columns -->
+    {% for q in all_columns %}
+      <input type="hidden" name="include_{{ q }}" value="1">
+      <input type="hidden" name="cut_column_{{ q }}" value="{{ request.form.get('cut_column_' ~ q, 'Q1') }}">
+      {% set added_types = [] %}
+      {% for t in request.form.getlist('type_' ~ q) %}
+        {% if t not in added_types %}
+          <input type="hidden" name="type_{{ q }}" value="{{ t }}">
+          {% set _ = added_types.append(t) %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
 
-    <hr>
-    <h3>Sort Table</h3>
-    <label for="sort_order_{{ question_code }}">Sort by % of respondents:</label><br>
-    <select name="sort_order" id="sort_order_{{ question_code }}">
-      <option value="none" {% if sort_order == 'none' %}selected{% endif %}>None</option>
-      <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Ascending</option>
-      <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Descending</option>
-    </select><br><br>
+    <h3>Global Filters</h3>
+    <div id="filter-container">
+      {% set filters = filter_questions|default([]) %}
+      {% set values = filter_values|default([]) %}
 
-    {% if sort_column_options %}
-    <div id="sort_column_container_{{ question_code }}_filter" style="display: none;">
-      <label for="sort_column_{{ question_code }}">Sort column:</label><br>
-      <select name="sort_column" id="sort_column_{{ question_code }}">
-        {% for col in sort_column_options %}
-        <option value="{{ col }}" {% if sort_column == col %}selected{% endif %}>{{ col }}</option>
-        {% endfor %}
-      </select><br><br>
+      {% for i in range(filters|length) %}
+      <div class="filter-block">
+        <label><strong>Question</strong></label>
+        <select name="filter_question_{{ i }}" class="filter-question">
+          <option value="">-- Select Question --</option>
+          {% for q in filter_columns %}
+          <option value="{{ q }}" {% if q == filters[i] %}selected{% endif %}>{{ q }}</option>
+          {% endfor %}
+        </select>
+
+        <div class="value-wrapper {% if filters[i] %}show{% else %}hide{% endif %}">
+          <label><strong>Select Value</strong></label>
+          <select name="filter_value_{{ i }}" class="filter-value" data-prefill="{{ values[i]|default('__all__') }}">
+          </select>
+        </div>
+
+        <button type="button" onclick="this.parentElement.remove(); updateFilterCount();" style="margin: 5px 0; width: 100%;">Remove Filter</button>
+      </div>
+      {% endfor %}
     </div>
-    {% endif %}
 
-    <button type="submit">Go</button>
+    <button type="button" onclick="addFilter()" style="margin: 1rem 0; width: 100%;">+ Add Filter</button>
+
+    <button type="submit" style="width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+      Apply Filters
+    </button>
+
+    <h3 style="margin-top: 2rem;">Global Sort</h3>
+    <label><strong>Select Order</strong></label>
+    <select name="sort_column" style="width: 100%; margin-bottom: 1rem;">
+      <option value="">None</option>
+      <option value="asc" {% if sort_column == "asc" %}selected{% endif %}>Ascending</option>
+      <option value="desc" {% if sort_column == "desc" %}selected{% endif %}>Descending</option>
+    </select>
+
+    <button type="submit" style="width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+      Apply Sort
+    </button>
   </form>
 </div>
 
+<style>
+  .value-wrapper.hide { display: none; }
+  .value-wrapper.show { display: block; }
+</style>
+
 <script>
-function addFilter(qid) {
-  const allColumns = JSON.parse(document.getElementById("allColumnsData_" + qid).textContent);
-  const filtersDiv = document.getElementById("filters_" + qid);
-  const index = filtersDiv.childElementCount + 1;
+  function loadFilterValues(questionSelect, valueSelect, prefillValue) {
+    const question = questionSelect.value;
+    const filename = document.querySelector('input[name="filename"]').value;
 
-  const block = document.createElement("div");
-  block.className = "filter-block";
-  block.style.marginTop = "15px";
+    valueSelect.innerHTML = '<option>Loading...</option>';
 
-  const label = document.createElement("label");
-  label.innerText = `Filter ${index}`;
-  block.appendChild(label);
-  block.appendChild(document.createElement("br"));
+    fetch("/get_answer_key_values", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ filename, question })
+    })
+    .then(response => response.json())
+    .then(values => {
+      valueSelect.innerHTML = "";
 
-  const questionSelect = document.createElement("select");
-  questionSelect.name = "filter_question";
-  questionSelect.className = "question-dropdown";
-  questionSelect.onchange = function () {
-    loadValues(questionSelect, valueSelect, qid);
-  };
-  questionSelect.appendChild(new Option("-- Select Question --", ""));
-  allColumns.forEach(col => {
-    questionSelect.appendChild(new Option(col, col));
-  });
+      const allOpt = document.createElement("option");
+      allOpt.value = "__all__";
+      allOpt.textContent = "All";
+      valueSelect.appendChild(allOpt);
 
-  block.appendChild(questionSelect);
-  block.appendChild(document.createElement("br"));
-  block.appendChild(document.createElement("br"));
-
-  const valueSelect = document.createElement("select");
-  valueSelect.name = "filter_value";
-  valueSelect.innerHTML = `<option value="__all__">All</option>`;
-  block.appendChild(valueSelect);
-
-  filtersDiv.appendChild(block);
-}
-
-function loadValues(questionSelect, valueSelect, qid) {
-  const question = questionSelect.value;
-  const filename = document.querySelector("input[name='filename']").value;
-
-  if (!question) return;
-
-  fetch("/get_answer_key_values", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ filename, question })
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log("Received filter values:", data);
-    valueSelect.innerHTML = `<option value="__all__">All</option>`;
-    data.forEach(value => {
-      const opt = document.createElement("option");
-      opt.value = value;
-      opt.text = value;
-      valueSelect.appendChild(opt);
+      values.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v;
+        opt.textContent = v;
+        if (v === prefillValue) opt.selected = true;
+        valueSelect.appendChild(opt);
+      });
+    })
+    .catch(() => {
+      valueSelect.innerHTML = '<option value="__all__">All</option><option value="">-- Error Loading --</option>';
     });
+  }
+
+  function attachListeners(block) {
+    const qSelect = block.querySelector('.filter-question');
+    const vSelect = block.querySelector('.filter-value');
+    const valueWrapper = block.querySelector('.value-wrapper');
+
+    qSelect.addEventListener("change", () => {
+      if (qSelect.value) {
+        valueWrapper.classList.remove("hide");
+        valueWrapper.classList.add("show");
+        loadFilterValues(qSelect, vSelect);
+      } else {
+        valueWrapper.classList.add("hide");
+        valueWrapper.classList.remove("show");
+      }
+    });
+
+    if (qSelect.value) {
+      valueWrapper.classList.remove("hide");
+      valueWrapper.classList.add("show");
+      const prefill = vSelect.dataset.prefill || "";
+      loadFilterValues(qSelect, vSelect, prefill);
+    }
+  }
+
+  function addFilter() {
+    const container = document.getElementById("filter-container");
+    const currentCount = container.querySelectorAll(".filter-block").length;
+    document.getElementById("filter-count").value = currentCount + 1;
+
+    const newBlock = document.createElement("div");
+    newBlock.className = "filter-block";
+    newBlock.innerHTML = `
+      <label><strong>Question</strong></label>
+      <select name="filter_question_${currentCount}" class="filter-question" required>
+        <option value="">-- Select Question --</option>
+        {% for q in filter_columns %}
+        <option value="{{ q }}">{{ q }}</option>
+        {% endfor %}
+      </select>
+
+      <div class="value-wrapper hide">
+        <label><strong>Value</strong></label>
+        <select name="filter_value_${currentCount}" class="filter-value">
+          <option value="__all__" selected>All</option>
+        </select>
+      </div>
+
+      <button type="button" onclick="this.parentElement.remove(); updateFilterCount();" style="margin: 5px 0; width: 100%;">Remove Filter</button>
+    `;
+    container.appendChild(newBlock);
+    attachListeners(newBlock);
+  }
+
+  function updateFilterCount() {
+    const container = document.getElementById("filter-container");
+    const count = container.querySelectorAll(".filter-block").length;
+    document.getElementById("filter-count").value = count;
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".filter-block").forEach(attachListeners);
   });
-}
 </script>

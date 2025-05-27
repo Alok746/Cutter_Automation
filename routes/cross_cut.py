@@ -1,11 +1,13 @@
 from flask import render_template
 import pandas as pd
 import os
+from utils import apply_global_filters
 import re
 
 def process_cross_cut(filepath, sheet, column, filters):
     df = pd.read_excel(filepath, sheet_name=sheet, header=2)
     df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
+    df = apply_global_filters(df, df_key, filters)
 
     base_prefix = column.split(":")[0].strip()
     cut_col = filters.get("cut_column", "")
@@ -17,7 +19,6 @@ def process_cross_cut(filepath, sheet, column, filters):
     cut_value_map = {}
     capture = False
 
-    # Extract base options from answer key
     for _, row in df_key.iterrows():
         if pd.notna(row[0]) and str(row[0]).strip() == base_prefix:
             capture = True
@@ -27,7 +28,6 @@ def process_cross_cut(filepath, sheet, column, filters):
         if capture and pd.notna(row[1]):
             base_options.append(str(row[1]).strip())
 
-    # Extract cut filter options from answer key
     capture = False
     for _, row in df_key.iterrows():
         if pd.notna(row[0]) and str(row[0]).strip() == cut_prefix:
@@ -61,17 +61,17 @@ def process_cross_cut(filepath, sheet, column, filters):
         overall_pct = (row_total / total_respondents * 100) if total_respondents > 0 else 0
         percent_matrix.append((label, overall_pct, row_percents))
 
-    # ✅ Clean filename for safe HTML use
-    filename_only = os.path.basename(filepath)
+    # ✅ Sorting based on overall % (column 1)
+    sort_order = filters.get("sort_column")
+    if sort_order in ["asc", "desc"] and percent_matrix:
+        reverse = sort_order == "desc"
+        combined = list(zip(percent_matrix, result_matrix))
+        combined.sort(key=lambda x: x[0][1], reverse=reverse)
+        percent_matrix, result_matrix = zip(*combined)
+        percent_matrix = list(percent_matrix)
+        result_matrix = list(result_matrix)
 
-    # ✅ Extract question list for filter dropdown
-    question_columns = []
-    for _, row in df_key.iterrows():
-        if pd.notna(row[0]):
-            code = str(row[0]).strip()
-            if re.match(r'^Q\d+$', code):
-                question_columns.append(code)
-    question_columns = list(dict.fromkeys(question_columns))
+    filename_only = os.path.basename(filepath)
 
     return render_template("results_cross_cut.html",
         question_text=f"Cross cut {column} x {cut_prefix}",
@@ -80,12 +80,12 @@ def process_cross_cut(filepath, sheet, column, filters):
         percent_matrix=percent_matrix,
         total_respondents=total_respondents,
         cut_totals=cut_totals,
-        sort_order="none",
+        sort_order=sort_order,
         sort_column="Overall",
         sort_column_options=["Overall"] + cut_labels,
         filename=filename_only,
         sheet=sheet,
         question_code=base_prefix,
         cut_column=cut_prefix,
-        all_columns=question_columns
+        all_columns=[]
     )

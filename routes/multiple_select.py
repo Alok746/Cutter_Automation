@@ -1,12 +1,13 @@
 from flask import render_template
 import pandas as pd
+from utils import apply_global_filters
 import re
 import os
 
 def process_multi_select(filepath, sheet, column, filters):
     df = pd.read_excel(filepath, sheet_name=sheet, header=2)
     df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
-
+    df = apply_global_filters(df, df_key, filters)
     base_prefix = column.split(":")[0].strip()
     relevant_cols = [col for col in df.columns if col.startswith(f"{base_prefix}:")]
 
@@ -49,6 +50,11 @@ def process_multi_select(filepath, sheet, column, filters):
             if re.match(r'^Q\d+$', code):
                 question_columns.append(code)
     question_columns = list(dict.fromkeys(question_columns))
+    
+    if filters.get("sort_column") == "asc":
+        final_data.sort(key=lambda x: x[2])
+    elif filters.get("sort_column") == "desc":
+        final_data.sort(key=lambda x: x[2], reverse=True)
 
     return render_template("results_multiple_select.html",
         question_text=question_text,

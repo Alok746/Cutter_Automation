@@ -1,12 +1,14 @@
 from flask import render_template
 import pandas as pd
 import re
+from utils import apply_global_filters
 import os
 
 def process_ranked_question(filepath, sheet, column, filters):
     df = pd.read_excel(filepath, sheet_name=sheet, header=2)
     df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
 
+    df = apply_global_filters(df, df_key, filters)
     base_prefix = column.split(":")[0].strip()
     relevant_cols = [col for col in df.columns if col.startswith(f"{base_prefix}:")]
 
@@ -52,6 +54,15 @@ def process_ranked_question(filepath, sheet, column, filters):
             if re.match(r'^Q\d+$', code):
                 question_columns.append(code)
     question_columns = list(dict.fromkeys(question_columns))
+    
+    if filters.get("sort_column") == "asc":
+        percent_matrix, count_matrix, row_labels = zip(*sorted(
+            zip(percent_matrix, count_matrix, row_labels), key=lambda x: x[0][0]
+        ))
+    elif filters.get("sort_column") == "desc":
+        percent_matrix, count_matrix, row_labels = zip(*sorted(
+            zip(percent_matrix, count_matrix, row_labels), key=lambda x: x[0][0], reverse=True
+        ))
 
     return render_template("results_ranked.html",
         question_text=f"Ranked Summary for {base_prefix}",

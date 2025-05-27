@@ -1,12 +1,13 @@
 from flask import render_template
 import pandas as pd
 import re
+from utils import apply_global_filters
 import os
 
 def process_single_choice(filepath, sheet, column, filters):
     df = pd.read_excel(filepath, sheet_name=sheet, header=2)
     df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
-
+    df = apply_global_filters(df, df_key, filters)
     # Get full list of question columns (those present in the answer key)
     question_columns = []
     seen = set()
@@ -18,7 +19,6 @@ def process_single_choice(filepath, sheet, column, filters):
                 seen.add(code)
                 question_columns.append(code)  # remove duplicates while preserving order
 
-    print("set", question_columns)
     # Apply filters (if any)
     if filters:
         f_questions = filters.get("filter_questions", [])
@@ -74,6 +74,11 @@ def process_single_choice(filepath, sheet, column, filters):
         summary.append((label, count, round(pct, 2)))
 
     filename_only = os.path.basename(filepath)
+    
+    if filters.get("sort_column") == "asc":
+        summary.sort(key=lambda x: x[2])
+    elif filters.get("sort_column") == "desc":
+        summary.sort(key=lambda x: x[2], reverse=True)
 
     return render_template('results.html',
         question_text=question_text,

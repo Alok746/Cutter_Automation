@@ -1,22 +1,21 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="content" style="padding: 2rem;">
-  <h1>Combined Results for Selected Questions</h1>
+<div class="layout">
+  {% include "components/sidebar_filter.html" %}
 
-  {% for item in results %}
-  <div class="question-result" style="margin-bottom: 40px; border: 1px solid #ccc; padding: 20px; border-radius: 8px; background-color: #f9f9f9;">
-    <h2 style="margin-bottom: 10px;">{{ item.question }}{% if item.text %}: {{ item.text }}{% endif %}</h2>
-    <div style="overflow-x: auto;">
-      {% set question_code = item.question %}
-      {% set all_columns = item.all_columns if item.all_columns is defined else [] %}
-      {{ item.html | safe }}
+  <div class="content">
+    <h2 class="mb-4 text-center" style="color: #cc0000;">Combined Results for Selected Questions</h2>
+
+    {% for item in results %}
+    <div class="question-result" style="margin-bottom: 40px; border: 1px solid #ccc; padding: 20px; border-radius: 8px; background-color: #f9f9f9;">
+      <div style="overflow-x: auto;">
+        {{ item.html | safe }}
+      </div>
     </div>
-  </div>
-  {% endfor %}
+    {% endfor %}
 
-  <div style="margin-top: 2rem;">
-    <form action="/select_columns" method="post">
+    <form action="/select_columns" method="post" style="margin-top: 2rem;">
       <input type="hidden" name="filename" value="{{ filename }}">
       <input type="hidden" name="sheet" value="{{ sheet }}">
       <button type="submit" style="padding: 10px 16px; font-size: 14px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">

@@ -1,50 +1,58 @@
 {% extends "base.html" %}
+{% block title %}Select Questions{% endblock %}
 
 {% block content %}
-<div class="content" style="padding: 2rem;">
-  <h1>Select Questions from Sheet: {{ sheet }}</h1>
+<div class="content" style="padding: 2rem; max-width: 1200px; margin: 0 auto;">
+  <h1 class="mb-4" style="color: #cc0000;">Select Questions from Sheet: {{ sheet }}</h1>
 
   <form method="post" action="/compare_multi_questions">
     <input type="hidden" name="filename" value="{{ filename }}">
     <input type="hidden" name="sheet" value="{{ sheet }}">
 
-    <div style="margin-bottom: 1rem;">
-      <label><input type="checkbox" id="select-all" checked> <strong>Select/Deselect All</strong></label>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <label style="font-weight: bold; color: #cc0000;">
+        <input type="checkbox" id="select-all" checked> Select/Deselect All
+      </label>
+
+      <button type="submit" class="btn-red" style="padding: 8px 20px; border-radius: 6px;">Submit</button>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div class="question-grid">
       {% for qid, qtext in question_pairs %}
-      <div style="background: #fff; border: 1px solid #ccc; padding: 16px; border-radius: 6px;">
-        <div style="margin-bottom: 10px; font-size: 15px;">
+      <div class="question-card">
+        <div class="question-title">
           <label>
             <input type="checkbox" name="include_{{ qid }}" class="question-checkbox" checked>
-            <strong>{{ qid }}:</strong>
+            <strong>{{ qid }}:</strong> {{ qtext }}
           </label>
-          {{ qtext }}
         </div>
+
         <div class="question-types">
           <label><input type="checkbox" name="type_{{ qid }}" value="single_choice"> Single Choice</label>
           <label><input type="checkbox" name="type_{{ qid }}" value="matrix"> Matrix</label>
           <label><input type="checkbox" name="type_{{ qid }}" value="multi_select"> Multi-Select</label>
+
           <label>
             <input type="checkbox" name="type_{{ qid }}" value="cross_cut" onchange="toggleCutDropdown(this, '{{ qid }}')"> Cross Cut
-            <select name="cut_column_{{ qid }}" id="cut_{{ qid }}" style="display: none; margin-left: 8px;">
+            <select name="cut_column_{{ qid }}" id="cut_{{ qid }}" class="hidden-input">
               {% for col in question_pairs %}
-              <option value="{{ col[0] }}">{{ col[0] }}</option>
+                <option value="{{ col[0] }}">{{ col[0] }}</option>
               {% endfor %}
             </select>
           </label>
+
           <label>
-            <input type="checkbox" name="type_{{ qid }}" value="ranked" onchange="toggleRankInput(this, '{{ qid }}')"> Ranked
-            <input type="number" name="max_rank_{{ qid }}" id="rank_{{ qid }}" min="1" max="10" style="display: none; margin-left: 8px; width: 60px;">
+            <input type="checkbox" name="type_{{ qid }}" value="ranked" onchange="toggleRankInput(this, '{{ qid }}')">Ranked
+            <input type="number" name="max_rank_{{ qid }}" id="rank_{{ qid }}"
+                  min="1" max="10" value="3" class="hidden-input">
           </label>
+
           <label><input type="checkbox" name="type_{{ qid }}" value="nps"> NPS</label>
         </div>
       </div>
       {% endfor %}
     </div>
 
-    <br><button type="submit">Generate Results</button>
   </form>
 </div>
 
@@ -54,21 +62,25 @@
     allCheckboxes.forEach(cb => cb.checked = this.checked);
   });
 
-  function toggleRankInput(checkbox, qid) {
-    const input = document.getElementById(`rank_${qid}`);
-    if (checkbox.checked) {
-      input.style.display = 'inline-block';
-    } else {
-      input.style.display = 'none';
-    }
-  }
-
   function toggleCutDropdown(checkbox, qid) {
     const dropdown = document.getElementById(`cut_${qid}`);
     if (checkbox.checked) {
-      dropdown.style.display = 'inline-block';
+      dropdown.classList.remove("hidden-input");
+      dropdown.classList.add("visible-input");
     } else {
-      dropdown.style.display = 'none';
+      dropdown.classList.remove("visible-input");
+      dropdown.classList.add("hidden-input");
+    }
+  }
+
+  function toggleRankInput(checkbox, qid) {
+    const input = document.getElementById(`rank_${qid}`);
+    if (checkbox.checked) {
+      input.classList.remove("hidden-input");
+      input.classList.add("visible-input");
+    } else {
+      input.classList.remove("visible-input");
+      input.classList.add("hidden-input");
     }
   }
 </script>
