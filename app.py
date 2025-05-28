@@ -57,6 +57,7 @@ def select_columns():
     df = pd.read_excel(filepath, sheet_name=sheet, header=2)
     df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
 
+    # Extract valid Q columns from the dataset
     data_columns = set()
     for col in df.columns:
         if isinstance(col, str):
@@ -64,13 +65,34 @@ def select_columns():
             if match:
                 data_columns.add(match.group(1))
 
+    # Build question_map ONLY for questions with answer options
     question_map = {}
-    for _, row in df_key.iterrows():
+    i = 0
+    while i < len(df_key):
+        row = df_key.iloc[i]
         if pd.notna(row[0]) and pd.notna(row[1]):
             qid_match = re.match(r"(Q\d+)", str(row[0]).strip())
             if qid_match:
-                question_map[qid_match.group(1)] = str(row[1]).strip()
+                qid = qid_match.group(1)
+                text = str(row[1]).strip()
 
+                # Look ahead to see if it has options
+                has_options = False
+                j = i + 1
+                while j < len(df_key):
+                    subrow = df_key.iloc[j]
+                    if pd.isna(subrow[0]):
+                        break
+                    if pd.notna(subrow[1]):
+                        has_options = True
+                        break
+                    j += 1
+
+                if has_options:
+                    question_map[qid] = text
+        i += 1
+
+    # Include only questions in both the data and the valid answer key map
     columns = sorted(data_columns.intersection(set(question_map.keys())), key=lambda q: int(q[1:]))
     question_pairs = [(qid, question_map[qid]) for qid in columns]
 
