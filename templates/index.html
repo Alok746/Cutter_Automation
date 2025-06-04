@@ -3,9 +3,21 @@
 
 {% block content %}
 <div class="container py-5">
+  
   <div class="card-red mx-auto" style="max-width: 550px;">
-    <h2 class="mb-4 text-center" style="color: #cc0000;">Upload Excel File</h2>
+    <div class="instruction-box">
+      <h3>Points to remember</h3>
+      <ul>
+        <li>Supported file formats: <strong>.xls</strong> & <strong>.xlsx</strong></li>
+        <li>Make sure your raw data start on the <strong>3rd row</strong></li>
+        <li>Please select the correct data type: <strong>In-Query</strong> or <strong>Qualtrics</strong></li>
+        <li>If the data type is <strong>In-Query</strong> make sure that you have the <strong>Answer key</strong> sheet in the file</li>
+        <li>If the data type is <strong>Qualtrics</strong> make sure that you have the <strong>Answer key</strong> and <strong>Variable information</strong> sheets in the file</li>
+      </ul>
+    </div>
 
+
+    <h2 class="mb-4 text-center" style="color: #cc0000;">Upload Excel File</h2>
     <!-- Upload Box -->
     <form id="uploadForm" method="post" enctype="multipart/form-data">
       <div id="uploadBox" class="upload-box">
@@ -26,6 +38,20 @@
       <div class="mb-3">
         <label class="form-label"><strong>Select Sheet</strong></label>
         <select name="sheet" id="sheetSelect" class="form-select" required></select>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label"><strong>Select Data Format</strong></label>
+        <div>
+          <label>
+            <input type="radio" name="data_format" value="inquery" checked>
+            In-Query
+          </label><br>
+          <label>
+            <input type="radio" name="data_format" value="qualtrics">
+            Qualtrics
+          </label>
+        </div>
       </div>
 
       <button type="submit" class="btn btn-success w-100">Continue</button>
@@ -80,6 +106,12 @@
         option.textContent = sheet;
         sheetSelect.appendChild(option);
       });
+
+    if (data.is_qualtrics) {
+      document.querySelector('input[name="data_format"][value="qualtrics"]').checked = true;
+    } else {
+      document.querySelector('input[name="data_format"][value="inquery"]').checked = true;
+    }
 
       document.getElementById("sheetForm").style.display = "block";
     } else {

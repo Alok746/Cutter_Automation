@@ -42,9 +42,16 @@ def process_nps_question(filepath, sheet, column, filters):
             if re.match(r'^Q\d+$', code):
                 question_columns.append(code)
     question_columns = list(dict.fromkeys(question_columns))
+    
+    question_text = f"NPS Summary for {base_prefix}"
+    for _, row in df_key.iterrows():
+        if pd.notna(row[0]) and str(row[0]).strip() == base_prefix:
+            if pd.notna(row[1]):
+                question_text = f"{base_prefix}: {str(row[1]).strip()}"
+            break
 
     return render_template("results_nps.html",
-        question_text=f"NPS Summary for {base_prefix}",
+        question_text=question_text,
         row_labels=row_labels,
         col_labels=col_labels,
         result_matrix=result_matrix,

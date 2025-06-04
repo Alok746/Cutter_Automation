@@ -317,3 +317,32 @@ input[type="checkbox"],
 input[type="radio"] {
   accent-color: #cc0000;
 }
+
+
+.instruction-box {
+  background-color: white;
+  padding: 1.5rem 2rem;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  margin-bottom: 2rem;
+  max-width: 550px;
+  width: 100%;
+}
+
+.instruction-box h3 {
+  color: #cc0000;
+  font-size: 1.2rem;
+  border-bottom: 1px solid #f2c2c2;
+  padding-bottom: 4px;
+  margin-bottom: 1rem;
+}
+
+.instruction-box ul {
+  padding-left: 1.2rem;
+}
+
+.instruction-box ul li {
+  margin-bottom: 0.8rem;
+  font-size: 0.95rem;
+}

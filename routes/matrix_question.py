@@ -60,9 +60,16 @@ def process_matrix_question(filepath, sheet, column, filters):
         percent_matrix, count_matrix, row_labels = zip(*sorted(
             zip(percent_matrix, count_matrix, row_labels), key=lambda x: x[0][0], reverse=True
         ))
+        
+    question_text = column
+    for _, row in df_key.iterrows():
+        if pd.notna(row[0]) and str(row[0]).strip() == base_prefix:
+            if pd.notna(row[1]):
+                question_text = f"{base_prefix}: {str(row[1]).strip()}"
+            break
 
     return render_template("results_matrix.html",
-        question_text=column,
+        question_text=question_text,
         row_labels=row_labels,
         col_labels=col_labels,
         count_matrix=count_matrix,
