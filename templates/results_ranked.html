@@ -8,9 +8,7 @@
       <input type="hidden" name="sheet" value="{{ sheet }}">
     </form>
 
-    <h2>Response Summary for {{ question_text }}</h2>
-
-    <div style="overflow-x: auto;">
+    <div class="table-wrapper">
       <table class="results-table matrix-table">
         <thead>
           <tr>
@@ -34,7 +32,7 @@
         </tbody>
       </table>
     </div>
-
+    <hr style="border: none; height: 30px; margin: 0;">
     <div style="overflow-x: auto;">
       <table class="results-table matrix-table">
         <thead>

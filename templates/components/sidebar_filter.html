@@ -27,8 +27,10 @@
         <label><strong>Question</strong></label>
         <select name="filter_question_{{ i }}" class="filter-question">
           <option value="">-- Select Question --</option>
-          {% for q in filter_columns %}
-          <option value="{{ q }}" {% if q == filters[i] %}selected{% endif %}>{{ q }}</option>
+          {% for code, text in filter_columns %}
+          <option value="{{ code }}" {% if code == filters[i] %}selected{% endif %}>
+            {{ code }}: {{ text }}
+          </option>
           {% endfor %}
         </select>
 
@@ -57,7 +59,7 @@
       <option value="desc" {% if sort_column == "desc" %}selected{% endif %}>Descending</option>
     </select>
 
-    <button type="submit" style="width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+    <button type="submit" style="width: 100%; padding: 10px; background-color: #cc0000; color: white; border: none; border-radius: 4px; cursor: pointer;">
       Apply Sort
     </button>
   </form>
@@ -137,8 +139,8 @@
       <label><strong>Question</strong></label>
       <select name="filter_question_${currentCount}" class="filter-question" required>
         <option value="">-- Select Question --</option>
-        {% for q in filter_columns %}
-        <option value="{{ q }}">{{ q }}</option>
+        {% for code, text in filter_columns %}
+        <option value="{{ code }}">{{ code }}: {{ text }}</option>
         {% endfor %}
       </select>
 

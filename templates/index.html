@@ -1,61 +1,107 @@
 {% extends "base.html" %}
 {% block title %}Upload & Select Sheet{% endblock %}
+{% set page_class = "index-page" %}
 
 {% block content %}
-<div class="container py-5">
-  
-  <div class="card-red mx-auto" style="max-width: 550px;">
-    <div class="instruction-box">
-      <h3>Points to remember</h3>
-      <ul>
-        <li>Supported file formats: <strong>.xls</strong> & <strong>.xlsx</strong></li>
-        <li>Make sure your raw data start on the <strong>3rd row</strong></li>
-        <li>Please select the correct data type: <strong>In-Query</strong> or <strong>Qualtrics</strong></li>
-        <li>If the data type is <strong>In-Query</strong> make sure that you have the <strong>Answer key</strong> sheet in the file</li>
-        <li>If the data type is <strong>Qualtrics</strong> make sure that you have the <strong>Answer key</strong> and <strong>Variable information</strong> sheets in the file</li>
-      </ul>
+
+<!-- BAIN HEADER -->
+<div class="bain-header-background">
+  <div class="bain-header">
+    <img src="{{ url_for('static', filename='images/Bain_&_Company_logo.svg.png') }}" alt="Bain & Company" class="bain-logo">
+  </div>
+</div>
+
+<!-- SIDEBAR NAV -->
+<nav class="sidebar-nav">
+  <div class="sidebar-icon">
+    <a href="#">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="4" y="10" width="4" height="10"/>
+        <rect x="10" y="6" width="4" height="14"/>
+        <rect x="16" y="2" width="4" height="18"/>
+      </svg>
+      <span class="label">Chart Generator</span>
+    </a>
+  </div>
+
+  <div class="sidebar-icon">
+    <a href="#">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="4" y="4" width="16" height="2"/>
+        <circle cx="19" cy="5" r="1.5"/>
+        <rect x="4" y="10" width="16" height="2"/>
+        <circle cx="19" cy="11" r="1.5"/>
+        <rect x="4" y="16" width="16" height="2"/>
+        <circle cx="19" cy="17" r="1.5"/>
+      </svg>
+      <span class="label">Survey Cutter</span>
+    </a>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="row w-100-no-limit">
+    <div class="hero-banner">
+      <img src="{{ url_for('static', filename='images/Header Background.png') }}" alt="Banner" class="banner-image">
+      <div class="banner-text">
+        <h1>BCN Visualization CoE Tech Hub</h1>
+        <h2>Survey Cutter Generator</h2>
+      </div>
     </div>
-
-
-    <h2 class="mb-4 text-center" style="color: #cc0000;">Upload Excel File</h2>
-    <!-- Upload Box -->
-    <form id="uploadForm" method="post" enctype="multipart/form-data">
-      <div id="uploadBox" class="upload-box">
-        <div class="upload-icon">📁</div>
-        <div><strong>Drag & Drop</strong> or <u>Choose File</u></div>
-        <input type="file" name="excel_file" id="excelFile" style="display: none;" required>
+  </div>
+  <div class="row">
+    <div class="col">
+      <div class="instruction-box">
+        <h3>Points to remember</h3>
+        <ul>
+          <li>Supported file formats: <strong>.xls</strong> & <strong>.xlsx</strong></li>
+          <li>Make sure your raw data start on the <strong>3rd row</strong></li>
+          <li>Please select the correct data type: <strong>In-Query</strong> or <strong>Qualtrics</strong></li>
+          <li>If the data type is <strong>In-Query</strong>, make sure that you have the <strong>Answer key</strong> sheet in the file</li>
+        </ul>
       </div>
-      <button type="submit" class="btn btn-red w-100 mt-3">Upload</button>
-    </form>
+    </div>
+    <div class="col">
+      <div class="upload-section">
+        <h2 class="mb-4" style="color: #cc0000; text-align: center">Upload Excel File</h2>
 
-    <!-- File Preview -->
-    <div id="fileInfo" class="upload-preview" style="display: none;"></div>
+        <form id="uploadForm" method="post" enctype="multipart/form-data">
+          <div id="uploadBox" class="upload-box">
+            <div class="upload-icon">📁</div>
+            <div><strong>Drag & Drop</strong> or <u>Choose File</u></div>
+            <input type="file" name="excel_file" id="excelFile" style="display: none;" required>
+          </div>
+          <button type="submit" class="btn btn-red w-100 mt-3">Upload</button>
+        </form>
 
-    <!-- Sheet Form -->
-    <form id="sheetForm" method="post" action="/route_selector" style="display: none;" class="mt-4">
-      <input type="hidden" name="filename" id="filenameInput">
+        <div id="fileInfo" class="upload-preview" style="display: none;"></div>
 
-      <div class="mb-3">
-        <label class="form-label"><strong>Select Sheet</strong></label>
-        <select name="sheet" id="sheetSelect" class="form-select" required></select>
+        <form id="sheetForm" method="post" action="/route_selector" style="display: none;" class="mt-4">
+          <input type="hidden" name="filename" id="filenameInput">
+
+          <div class="mb-3">
+            <label class="form-label"><strong>Select Sheet</strong></label>
+            <select name="sheet" id="sheetSelect" class="form-select" required></select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label"><strong>Select Data Format</strong></label>
+            <div>
+              <label><input type="radio" name="data_format" value="inquery" checked> In-Query</label><br>
+              <label><input type="radio" name="data_format" value="qualtrics" disabled> Qualtrics (Coming Soon)</label>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-success w-100" style="padding: 5px;">Continue</button>
+        </form>
       </div>
+    </div>
+  </div>
+</div>
 
-      <div class="mb-3">
-        <label class="form-label"><strong>Select Data Format</strong></label>
-        <div>
-          <label>
-            <input type="radio" name="data_format" value="inquery" checked>
-            In-Query
-          </label><br>
-          <label>
-            <input type="radio" name="data_format" value="qualtrics">
-            Qualtrics
-          </label>
-        </div>
-      </div>
-
-      <button type="submit" class="btn btn-success w-100">Continue</button>
-    </form>
+<div class="bain-footer-background">
+  <div class="bain-footer">
+    <img src="{{ url_for('static', filename='images/Bain_&_Company_logo.svg.png') }}" alt="Bain & Company" class="bain-logo">
   </div>
 </div>
 
@@ -107,12 +153,7 @@
         sheetSelect.appendChild(option);
       });
 
-    if (data.is_qualtrics) {
-      document.querySelector('input[name="data_format"][value="qualtrics"]').checked = true;
-    } else {
-      document.querySelector('input[name="data_format"][value="inquery"]').checked = true;
-    }
-
+      document.querySelector(`input[value="${data.is_qualtrics ? 'qualtrics' : 'inquery'}"]`).checked = true;
       document.getElementById("sheetForm").style.display = "block";
     } else {
       alert("Upload failed or file format not supported.");

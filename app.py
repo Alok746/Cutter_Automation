@@ -109,7 +109,6 @@ def compare_multi_questions():
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
 
-    # Parse filters
     filter_count = int(request.form.get('filter_count', 0))
     filter_questions = []
     filter_values = []
@@ -126,12 +125,12 @@ def compare_multi_questions():
         'sort_column': request.form.get('sort_column', '')
     }
 
-    # Process each selected question
     questions = [
         key.replace("include_", "")
         for key in request.form.keys()
         if key.startswith("include_") and request.form.get(key)
     ]
+
     results = []
     for q in questions:
         types = list(dict.fromkeys(request.form.getlist(f"type_{q}")))
@@ -142,21 +141,30 @@ def compare_multi_questions():
             try:
                 if q_type == 'cross_cut' and filters['cut_column']:
                     html = process_cross_cut(filepath, sheet, q, filters)
+                    question_text = f"Cross cut {q} x {filters['cut_column']} - Cross Cut Summary"
                 elif q_type == 'single_choice':
                     html = process_single_choice(filepath, sheet, q, filters)
+                    question_text = next((str(row[1]).strip() for _, row in df_key.iterrows()
+                                          if str(row[0]).strip() == q and pd.notna(row[1])), q)
                 elif q_type == 'matrix':
                     html = process_matrix_question(filepath, sheet, q, filters)
+                    question_text = next((str(row[1]).strip() for _, row in df_key.iterrows()
+                                          if str(row[0]).strip() == q and pd.notna(row[1])), q)
                 elif q_type == 'multi_select':
                     html = process_multi_select(filepath, sheet, q, filters)
+                    question_text = next((str(row[1]).strip() for _, row in df_key.iterrows()
+                                          if str(row[0]).strip() == q and pd.notna(row[1])), q)
                 elif q_type == 'ranked':
                     html = process_ranked_question(filepath, sheet, q, filters)
+                    question_text = next((str(row[1]).strip() for _, row in df_key.iterrows()
+                                          if str(row[0]).strip() == q and pd.notna(row[1])), q)
                 elif q_type == 'nps':
                     html = process_nps_question(filepath, sheet, q, filters)
+                    question_text = next((str(row[1]).strip() for _, row in df_key.iterrows()
+                                          if str(row[0]).strip() == q and pd.notna(row[1])), q)
                 else:
                     html = f"<p>Unsupported or incomplete type for {q}</p>"
-
-                question_text = next((str(row[1]).strip() for _, row in df_key.iterrows()
-                                      if str(row[0]).strip() == q and pd.notna(row[1])), None)
+                    question_text = f"{q} - {q_type}"
 
                 results.append({'question': q, 'text': question_text, 'html': html})
             except Exception as e:
@@ -168,10 +176,15 @@ def compare_multi_questions():
 
     results.sort(key=lambda r: int(r['question'][1:]) if r['question'].startswith('Q') else 999)
 
-    filter_columns = list(dict.fromkeys([
-        str(row[0]).strip() for _, row in df_key.iterrows()
-        if pd.notna(row[0]) and re.match(r'^Q\d+$', str(row[0]).strip())
-    ]))
+    filter_columns = []
+    seen = set()
+    for _, row in df_key.iterrows():
+        if pd.notna(row[0]) and re.match(r'^Q\d+$', str(row[0]).strip()):
+            code = str(row[0]).strip()
+            text = str(row[1]).strip() if pd.notna(row[1]) else code
+            if code not in seen:
+                filter_columns.append((code, text))
+                seen.add(code)
 
     return render_template(
         'display_multi_results.html',

@@ -1,27 +1,91 @@
 {% extends "base.html" %}
 
 {% block content %}
+{% set page_class = "layout-row" %}
 <div class="layout">
   {% include "components/sidebar_filter.html" %}
 
   <div class="content">
     <h2 class="mb-4 text-center" style="color: #cc0000;">Combined Results for Selected Questions</h2>
-
-    {% for item in results %}
-    <div class="question-result" style="margin-bottom: 40px; border: 1px solid #ccc; padding: 20px; border-radius: 8px; background-color: #f9f9f9;">
-      <div style="overflow-x: auto;">
-        {{ item.html | safe }}
-      </div>
+    <div style="text-align: right; margin-bottom: 1rem;">
+      <label style="font-weight: 500; font-size: 0.95rem;">
+        <input type="checkbox" id="toggle-collapse" onchange="toggleAllCollapsibles(this)" checked>
+        Collapse All
+      </label>
     </div>
+    {% for item in results %}
+      <div class="collapsible-box">
+        <div class="collapsible-header" onclick="toggleBox(this)">
+          <h3>
+            {% if "cross cut" in item.text|lower %}
+              {{ item.text }}
+            {% else %}
+              {{ item.question }}: {{ item.text }}
+            {% endif %}
+          </h3>
+          <span class="toggle-arrow">▶</span>
+        </div>
+        <div class="collapsible-content collapsed">
+          {{ item.html | safe }}
+        </div>
+      </div>
     {% endfor %}
 
     <form action="/select_columns" method="post" style="margin-top: 2rem;">
       <input type="hidden" name="filename" value="{{ filename }}">
       <input type="hidden" name="sheet" value="{{ sheet }}">
-      <button type="submit" style="padding: 10px 16px; font-size: 14px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+      <button type="submit" style="padding: 10px 16px; font-size: 14px; background-color: #cc0000; color: white; border: none; border-radius: 4px; cursor: pointer;">
         ← Back to Question Selection
       </button>
     </form>
   </div>
 </div>
+
+<script>
+  function toggleBox(header) {
+    const content = header.nextElementSibling;
+    const collapsed = content.classList.toggle("collapsed");
+    const arrow = header.querySelector(".toggle-arrow");
+    arrow.textContent = collapsed ? "▶" : "▼";
+
+    // 🔁 Update master checkbox based on overall state
+    updateMasterCheckbox();
+  }
+
+  function toggleAllCollapsibles(checkbox) {
+    const allBoxes = document.querySelectorAll('.collapsible-box');
+    allBoxes.forEach(box => {
+      const header = box.querySelector('.collapsible-header');
+      const content = box.querySelector('.collapsible-content');
+      const arrow = header.querySelector('.toggle-arrow');
+
+      if (checkbox.checked) {
+        content.classList.add('collapsed');
+        arrow.textContent = "▶";
+      } else {
+        content.classList.remove('collapsed');
+        arrow.textContent = "▼";
+      }
+    });
+  }
+
+  function updateMasterCheckbox() {
+    const toggleCheckbox = document.getElementById("toggle-collapse");
+    const allBoxes = document.querySelectorAll('.collapsible-content');
+    const allCollapsed = Array.from(allBoxes).every(box => box.classList.contains("collapsed"));
+
+    // ✅ Only uncheck if *all* are collapsed
+    toggleCheckbox.checked = allCollapsed;
+  }
+
+  window.addEventListener("DOMContentLoaded", function () {
+    const toggle = document.getElementById("toggle-collapse");
+    toggleAllCollapsibles(toggle); // collapse or expand all based on checkbox state
+
+    // ✅ Add listener to keep it in sync when user manually toggles it
+    toggle.addEventListener("change", function () {
+      toggleAllCollapsibles(this);
+    });
+  });
+</script>
 {% endblock %}
