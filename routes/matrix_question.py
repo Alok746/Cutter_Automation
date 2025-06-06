@@ -8,8 +8,13 @@ def process_matrix_question(filepath, sheet, column, filters):
     df = pd.read_excel(filepath, sheet_name=sheet, header=2)
     df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
     df = apply_global_filters(df, df_key, filters)
-    base_prefix = column.split(":")[0].strip()
-    relevant_cols = [col for col in df.columns if col.startswith(f"{base_prefix}:")]
+    base_prefix = re.split(r"[:|]", column)[0].strip()
+
+    relevant_cols = [
+        col for col in df.columns
+        if isinstance(col, str)
+        and (col.startswith(f"{base_prefix}:") or col.startswith(f"{base_prefix} |"))
+    ]
 
     # Build row label map
     option_map = {}

@@ -29,9 +29,17 @@
         </div>
 
         <div class="question-types">
-          <label><input type="checkbox" name="type_{{ qid }}" value="single_choice"> Single Choice</label>
+          <label>
+            <input type="checkbox" name="type_{{ qid }}" value="single_choice"
+              {% if recommendations.get(qid) and 'single_choice' in recommendations[qid] %}checked{% endif %}>
+            Single Choice
+          </label>
           <label><input type="checkbox" name="type_{{ qid }}" value="matrix"> Matrix</label>
-          <label><input type="checkbox" name="type_{{ qid }}" value="multi_select"> Multi-Select</label>
+          <label>
+            <input type="checkbox" name="type_{{ qid }}" value="multi_select"
+              {% if recommendations.get(qid) and 'multi_select' in recommendations[qid] %}checked{% endif %}>
+            Multi-Select
+          </label>
 
           <label>
             <input type="checkbox" name="type_{{ qid }}" value="cross_cut" onchange="toggleCutDropdown(this, '{{ qid }}')"> Cross Cut
@@ -47,7 +55,11 @@
             <input type="number" name="max_rank_{{ qid }}" id="rank_{{ qid }}"
                   min="1" value="3" class="hidden-input">
           </label>
-          <label><input type="checkbox" name="type_{{ qid }}" value="nps"> NPS</label>
+          <label>
+            <input type="checkbox" name="type_{{ qid }}" value="nps"
+              {% if recommendations.get(qid) and 'nps' in recommendations[qid] %}checked{% endif %}>
+            NPS
+          </label>
         </div>
       </div>
       {% endfor %}

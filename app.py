@@ -12,6 +12,8 @@ from routes.cross_cut import process_cross_cut
 from routes.rank_based import process_ranked_question
 from routes.nps_question import process_nps_question
 
+from utils import detect_nps_questions, detect_single_choice_questions,detect_multi_select_questions
+
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
@@ -56,7 +58,8 @@ def select_columns():
 
     df = pd.read_excel(filepath, sheet_name=sheet, header=2)
     df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
-
+    
+    
     # Extract valid Q columns from the dataset
     data_columns = set()
     for col in df.columns:
@@ -95,9 +98,32 @@ def select_columns():
     # Include only questions in both the data and the valid answer key map
     columns = sorted(data_columns.intersection(set(question_map.keys())), key=lambda q: int(q[1:]))
     question_pairs = [(qid, question_map[qid]) for qid in columns]
+    
+    
+    # Call detection
+    nps_recommendations = detect_nps_questions(df, df_key)
+    single_choice_recommendations = detect_single_choice_questions(df, df_key)
+    multi_select_recommendations = detect_multi_select_questions(df)
 
-    return render_template('select_columns.html', filename=filename, sheet=sheet, question_pairs=question_pairs)
-
+    # Build recommendations dict
+    recommendations = {qid: [] for qid, _ in question_pairs}
+    for qid in nps_recommendations:
+        if qid in recommendations:
+            recommendations[qid].append("nps")
+    for qid in single_choice_recommendations:
+        if qid in recommendations:
+            recommendations[qid].append("single_choice")
+    for qid in multi_select_recommendations:
+        if qid in recommendations:
+            recommendations[qid].append("multi_select")
+            
+    print("debug", recommendations)
+    return render_template(
+        'select_columns.html', 
+        filename=filename, 
+        sheet=sheet, 
+        question_pairs=question_pairs,
+        recommendations=recommendations)
 
 # -----------------------------------------
 # Renders selected question results
