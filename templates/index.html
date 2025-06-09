@@ -7,12 +7,22 @@
 <!-- BAIN HEADER -->
 <div class="bain-header-background">
   <div class="bain-header">
-    <img src="{{ url_for('static', filename='images/Bain_&_Company_logo.svg.png') }}" alt="Bain & Company" class="bain-logo">
+    <img src="{{ url_for('static', filename='images/Bain_&_Company_logo.svg.png') }}" alt="Bain & Company" class="bain-logo-header">
   </div>
 </div>
 
 <!-- SIDEBAR NAV -->
 <nav class="sidebar-nav">
+  <div class="sidebar-icon">
+    <a href="#">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24" aria-hidden="true">
+        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+</svg>
+
+      <span class="label">Menu</span>
+    </a>
+  </div>
+
   <div class="sidebar-icon">
     <a href="#">
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -52,13 +62,26 @@
   <div class="row">
     <div class="col">
       <div class="instruction-box">
-        <h3>Points to remember</h3>
+        <h3>📌 Points to Note</h3>
+
+        <h4 style="color: #cc0000; margin-top: 1rem;">🔴 In-Query Data</h4>
         <ul>
-          <li>Supported file formats: <strong>.xls</strong> & <strong>.xlsx</strong></li>
-          <li>Make sure your raw data start on the <strong>3rd row</strong></li>
-          <li>Please select the correct data type: <strong>In-Query</strong> or <strong>Qualtrics</strong></li>
-          <li>If the data type is <strong>In-Query</strong>, make sure that you have the <strong>Answer key</strong> sheet in the file</li>
+          <li><strong>Accepted file formats:</strong> <code>.xls</code> or <code>.xlsx</code>. <br> 
+            <span style="color: #a60000;"><strong>Note:</strong> <code>.csv</code> files are not supported</span> because we require access to multiple sheets.</li>
+
+          <li>Your Excel file should contain the following two sheets:
+            <ul style="margin-top: 0.5rem;">
+              <li><strong>Raw Data</strong> – the actual survey responses</li>
+              <li><strong>Answer Key</strong> – the coded options for each question</li>
+            </ul>
+          </li>
+
+          <li><strong>Data must begin from the 3rd row</strong> in your Raw Data sheet. <br>
+            <small style="color: #555;">(This means your column headers – like Q1, Q2, etc. – should appear in row 3)</small>
+          </li>
         </ul>
+
+        <h4 style="color: #007bff; margin-top: 1.5rem;">🔵 Qualtrics Data (Coming Soon)</h4>
       </div>
     </div>
     <div class="col">
@@ -80,7 +103,7 @@
           <input type="hidden" name="filename" id="filenameInput">
 
           <div class="mb-3">
-            <label class="form-label"><strong>Select Sheet</strong></label>
+            <label class="form-label"><strong>Select your Raw Data</strong></label>
             <select name="sheet" id="sheetSelect" class="form-select" required></select>
           </div>
 
@@ -92,7 +115,14 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-success w-100" style="padding: 5px;">Continue</button>
+          <div class="d-flex gap-2">
+            <button type="submit" name="action" value="survey" class="btn btn-success w-50" style="padding: 5px;">
+              Continue with Survey Cutter
+            </button>
+            <button type="submit" name="action" value="genai" class="btn btn-success w-50" style="padding: 5px;" disabled>
+              Continue with Gen AI Analysis
+            </button>
+          </div>
         </form>
       </div>
     </div>

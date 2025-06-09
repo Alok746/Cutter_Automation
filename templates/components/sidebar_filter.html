@@ -1,4 +1,4 @@
-<div class="sidebar">
+<div class="sidebar sidebar-panel">
   <form method="post" action="/compare_multi_questions" id="globalFilterForm">
     <input type="hidden" name="filename" value="{{ filename }}">
     <input type="hidden" name="sheet" value="{{ sheet }}">
@@ -23,14 +23,16 @@
       {% set values = filter_values|default([]) %}
 
       {% for i in range(filters|length) %}
-      <div class="filter-block">
+      <div class="filter-block filter-card">
         <label><strong>Question</strong></label>
         <select name="filter_question_{{ i }}" class="filter-question">
           <option value="">-- Select Question --</option>
           {% for code, text in filter_columns %}
-          <option value="{{ code }}" {% if code == filters[i] %}selected{% endif %}>
-            {{ code }}: {{ text }}
-          </option>
+            {% if 'single_choice' in recommendations.get(code, []) %}
+              <option value="{{ code }}" {% if code == filters[i] %}selected{% endif %}>
+                {{ code }}: {{ text }}
+              </option>
+            {% endif %}
           {% endfor %}
         </select>
 
@@ -134,24 +136,28 @@
     document.getElementById("filter-count").value = currentCount + 1;
 
     const newBlock = document.createElement("div");
-    newBlock.className = "filter-block";
+    newBlock.className = "filter-block filter-card";
     newBlock.innerHTML = `
+      <button type="button" class="filter-remove" onclick="this.closest('.filter-card').remove(); updateFilterCount();" title="Remove filter">
+        &times;
+      </button>
+
       <label><strong>Question</strong></label>
-      <select name="filter_question_${currentCount}" class="filter-question" required>
+      <select name="filter_question_${currentCount}" class="filter-question form-select mb-2" required>
         <option value="">-- Select Question --</option>
         {% for code, text in filter_columns %}
-        <option value="{{ code }}">{{ code }}: {{ text }}</option>
+          {% if 'single_choice' in recommendations.get(code, []) %}
+            <option value="{{ code }}">{{ code }}: {{ text }}</option>
+          {% endif %}
         {% endfor %}
       </select>
 
       <div class="value-wrapper hide">
-        <label><strong>Value</strong></label>
-        <select name="filter_value_${currentCount}" class="filter-value">
+        <label><strong>Select Value</strong></label>
+        <select name="filter_value_${currentCount}" class="filter-value form-select mb-2">
           <option value="__all__" selected>All</option>
         </select>
       </div>
-
-      <button type="button" onclick="this.parentElement.remove(); updateFilterCount();" style="margin: 5px 0; width: 100%;">Remove Filter</button>
     `;
     container.appendChild(newBlock);
     attachListeners(newBlock);

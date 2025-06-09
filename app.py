@@ -42,9 +42,14 @@ def index():
 # -----------------------------------------
 @app.route('/route_selector', methods=['POST'])
 def route_selector():
-    filename = request.form['filename']
-    sheet = request.form['sheet']
-    return select_columns()
+    action = request.form.get("action")
+
+    if action == "survey":
+        return select_columns()  # your existing route
+    elif action == "genai":
+        return index()
+
+    return "Invalid action", 400
 
 
 # -----------------------------------------
@@ -117,7 +122,6 @@ def select_columns():
         if qid in recommendations:
             recommendations[qid].append("multi_select")
             
-    print("debug", recommendations)
     return render_template(
         'select_columns.html', 
         filename=filename, 
@@ -128,13 +132,28 @@ def select_columns():
 # -----------------------------------------
 # Renders selected question results
 # -----------------------------------------
+
+def get_question_text_from_key(df_key, qid):
+    for _, row in df_key.iterrows():
+        if pd.notna(row[0]) and str(row[0]).strip() == qid:
+            return str(row[1]).strip() if pd.notna(row[1]) else qid
+    return qid
+
 @app.route('/compare_multi_questions', methods=['POST'])
 def compare_multi_questions():
     filename = request.form['filename']
     sheet = request.form['sheet']
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+    df = pd.read_excel(filepath, sheet_name=sheet, header=2)
     df_key = pd.read_excel(filepath, sheet_name="Answer key", header=None)
 
+    # Detect question types
+    nps_recommendations = detect_nps_questions(df, df_key)
+    single_choice_recommendations = detect_single_choice_questions(df, df_key)
+    multi_select_recommendations = detect_multi_select_questions(df)
+
+    # Get filter inputs
     filter_count = int(request.form.get('filter_count', 0))
     filter_questions = []
     filter_values = []
@@ -151,6 +170,7 @@ def compare_multi_questions():
         'sort_column': request.form.get('sort_column', '')
     }
 
+    # Questions selected by user
     questions = [
         key.replace("include_", "")
         for key in request.form.keys()
@@ -158,6 +178,9 @@ def compare_multi_questions():
     ]
 
     results = []
+    all_columns = []
+
+    # Generate HTML per question type
     for q in questions:
         types = list(dict.fromkeys(request.form.getlist(f"type_{q}")))
         for q_type in types:
@@ -170,29 +193,26 @@ def compare_multi_questions():
                     question_text = f"Cross cut {q} x {filters['cut_column']} - Cross Cut Summary"
                 elif q_type == 'single_choice':
                     html = process_single_choice(filepath, sheet, q, filters)
-                    question_text = next((str(row[1]).strip() for _, row in df_key.iterrows()
-                                          if str(row[0]).strip() == q and pd.notna(row[1])), q)
+                    question_text = get_question_text_from_key(df_key, q)
                 elif q_type == 'matrix':
                     html = process_matrix_question(filepath, sheet, q, filters)
-                    question_text = next((str(row[1]).strip() for _, row in df_key.iterrows()
-                                          if str(row[0]).strip() == q and pd.notna(row[1])), q)
+                    question_text = get_question_text_from_key(df_key, q)
                 elif q_type == 'multi_select':
                     html = process_multi_select(filepath, sheet, q, filters)
-                    question_text = next((str(row[1]).strip() for _, row in df_key.iterrows()
-                                          if str(row[0]).strip() == q and pd.notna(row[1])), q)
+                    question_text = get_question_text_from_key(df_key, q)
                 elif q_type == 'ranked':
                     html = process_ranked_question(filepath, sheet, q, filters)
-                    question_text = next((str(row[1]).strip() for _, row in df_key.iterrows()
-                                          if str(row[0]).strip() == q and pd.notna(row[1])), q)
+                    question_text = get_question_text_from_key(df_key, q)
                 elif q_type == 'nps':
                     html = process_nps_question(filepath, sheet, q, filters)
-                    question_text = next((str(row[1]).strip() for _, row in df_key.iterrows()
-                                          if str(row[0]).strip() == q and pd.notna(row[1])), q)
+                    question_text = get_question_text_from_key(df_key, q)
                 else:
                     html = f"<p>Unsupported or incomplete type for {q}</p>"
                     question_text = f"{q} - {q_type}"
 
                 results.append({'question': q, 'text': question_text, 'html': html})
+                all_columns.append(q)
+
             except Exception as e:
                 results.append({
                     'question': q,
@@ -207,21 +227,33 @@ def compare_multi_questions():
     for _, row in df_key.iterrows():
         if pd.notna(row[0]) and re.match(r'^Q\d+$', str(row[0]).strip()):
             code = str(row[0]).strip()
-            text = str(row[1]).strip() if pd.notna(row[1]) else code
+            label = str(row[1]).strip() if pd.notna(row[1]) else code
             if code not in seen:
-                filter_columns.append((code, text))
+                filter_columns.append((code, label))
                 seen.add(code)
-
+                
+    recommendations = {code: [] for code, _ in filter_columns}
+    for qid in nps_recommendations:
+        if qid in recommendations:
+            recommendations[qid].append("nps")
+    for qid in single_choice_recommendations:
+        if qid in recommendations:
+            recommendations[qid].append("single_choice")
+    for qid in multi_select_recommendations:
+        if qid in recommendations:
+            recommendations[qid].append("multi_select")
+                
     return render_template(
         'display_multi_results.html',
         results=results,
         filename=filename,
         sheet=sheet,
-        all_columns=[r['question'] for r in results],
+        all_columns=all_columns,
         filter_columns=filter_columns,
         filter_questions=filter_questions,
         filter_values=filter_values,
-        sort_column=base_filters['sort_column']
+        sort_column=base_filters['sort_column'],
+        recommendations=recommendations  # ✅ this line is key
     )
 
 
