@@ -25,11 +25,11 @@
       {% for i in range(filters|length) %}
       <div class="filter-block filter-card">
         <label><strong>Question</strong></label>
-        <select name="filter_question_{{ i }}" class="filter-question">
+        <select name="filter_question_{{ i }}" class="filter-question" style="width: 100%; max-width: 100%;">
           <option value="">-- Select Question --</option>
           {% for code, text in filter_columns %}
             {% if 'single_choice' in recommendations.get(code, []) %}
-              <option value="{{ code }}" {% if code == filters[i] %}selected{% endif %}>
+              <option value="{{ code }}" {% if code == filters[i] %}selected{% endif %} title="{{ code }}: {{ text }}">
                 {{ code }}: {{ text }}
               </option>
             {% endif %}
@@ -42,7 +42,9 @@
           </select>
         </div>
 
-        <button type="button" onclick="this.parentElement.remove(); updateFilterCount();" style="margin: 5px 0; width: 100%;">Remove Filter</button>
+        <button type="button" class="filter-remove" onclick="this.closest('.filter-card').remove(); updateFilterCount();" title="Remove filter">
+          &times;
+        </button>
       </div>
       {% endfor %}
     </div>

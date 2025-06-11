@@ -30,6 +30,7 @@
         </tbody>
       </table>
     </div>
+
     <hr style="border: none; height: 30px; margin: 0;">
     <div style="overflow-x: auto;">
       <table class="results-table matrix-table">
@@ -59,6 +60,234 @@
         </tbody>
       </table>
     </div>
+
+    <div style="text-align: center; margin-top: 2rem;">
+      <button id="openMatrixColumnModal" class="btn btn-red">Generate Graph</button>
+    </div>
+
+    <div id="matrixColumnModal" class="modal" style="display: none;">
+      <div class="modal-content" style="max-width: 500px; margin: 5% auto; padding: 20px; background: #fff; border-radius: 8px;">
+        <h3>Select Columns to Show</h3>
+        <form id="matrixColumnForm">
+          <label style="display: block; margin-bottom: 10px;">
+            <input type="checkbox" id="toggleAllMatrixCols" checked> Select All / Deselect All
+          </label>
+          <div id="matrixColumnCheckboxes" style="max-height: 200px; overflow-y: auto; margin-bottom: 1rem;"></div>
+          <div style="text-align: right;">
+            <button type="submit" class="btn btn-success">Submit</button>
+            <button type="button" class="btn" onclick="document.getElementById('matrixColumnModal').style.display='none'">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div style="margin-top: 2rem; overflow-x: auto;">
+      <div id="matrix-graph"></div>
+    </div>
+
+    <script id="matrix-data" type="application/json">
+    {
+      "colLabels": {{ col_labels | tojson }},
+      "rowLabels": {{ row_labels | tojson }},
+      "percentMatrix": {{ percent_matrix | tojson }},
+      "countMatrix": {{ count_matrix | tojson }}
+    }
+    </script>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+    document.getElementById("openMatrixColumnModal").addEventListener("click", () => {
+      const modal = document.getElementById("matrixColumnModal");
+      const checkboxesDiv = document.getElementById("matrixColumnCheckboxes");
+      checkboxesDiv.innerHTML = "";
+
+      const labels = JSON.parse(document.getElementById("matrix-data").textContent).colLabels;
+
+      labels.forEach((label, i) => {
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.name = "matrix_col";
+        checkbox.value = i;
+        checkbox.id = "col_" + i;
+        checkbox.checked = true;
+
+        const labelElem = document.createElement("label");
+        labelElem.style.display = "block";
+        labelElem.style.marginBottom = "6px";
+        labelElem.innerText = label;
+        labelElem.prepend(checkbox);
+
+        checkboxesDiv.appendChild(labelElem);
+      });
+
+      modal.style.display = "block";
+    });
+
+    document.getElementById("toggleAllMatrixCols").addEventListener("change", function () {
+      const checkboxes = document.querySelectorAll('input[name="matrix_col"]');
+      checkboxes.forEach(cb => cb.checked = this.checked);
+    });
+
+    document.getElementById("matrixColumnForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const selected = Array.from(document.querySelectorAll('input[name="matrix_col"]:checked'))
+        .map(cb => parseInt(cb.value));
+      drawMatrixChart(selected);
+      document.getElementById("matrixColumnModal").style.display = "none";
+    });
+
+    function drawMatrixChart(selectedIndices = null) {
+      const data = JSON.parse(document.getElementById("matrix-data").textContent);
+      const rowLabels = data.rowLabels;
+      const allColLabels = data.colLabels;
+      const percentMatrix = data.percentMatrix;
+      const countMatrix = data.countMatrix;
+
+      if (!selectedIndices) selectedIndices = [...Array(allColLabels.length).keys()];
+      const colLabels = selectedIndices.map(i => allColLabels[i]);
+
+      const container = document.getElementById("matrix-graph");
+      container.innerHTML = "";
+
+      const width = container.offsetWidth;
+      const height = 500;
+      const margin = { top: 20, right: 220, bottom: 120, left: 60 };
+
+      const svg = d3.select("#matrix-graph").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+      const x = d3.scaleBand()
+        .domain(colLabels)
+        .range([margin.left, width - margin.right])
+        .padding(0.2);
+
+      const y = d3.scaleLinear()
+        .domain([0, 100])
+        .range([height - margin.bottom, margin.top]);
+
+      const colors = [
+        "#2c3e50", "#3e5870", "#5b7a90", "#87a0b3", "#b3c3d1",   // blues
+        "#720d45", "#9e3d6b", "#bc6991", "#d89db8", "#f0d8e5",   // pinks
+        "#a87b23", "#c49d33", "#e0c34a", "#f4e57a", "#fdf1c1",   // yellows
+        "#0b4f45", "#36735e", "#74a090", "#acc5b8", "#dfe9e1"    // greens
+      ];
+      const color = d3.scaleOrdinal().domain(rowLabels).range(colors);
+
+      svg.append("g")
+        .attr("transform", `translate(${margin.left}, 0)`)
+        .call(d3.axisLeft(y).ticks(5).tickFormat(d => d + "%"));
+
+      svg.append("g")
+        .attr("transform", `translate(0, ${height - margin.bottom})`)
+        .call(d3.axisBottom(x))
+        .selectAll("text")
+        .style("text-anchor", "middle")
+        .style("font-size", "15px")
+        .attr("dy", "1em")
+        .call(wrapText, x.bandwidth());
+
+    colLabels.forEach((col, i) => {
+      let yStart = y(0);
+      const originalIndex = selectedIndices[i];
+
+      rowLabels.forEach((row, j) => {
+        const pct = percentMatrix[j][originalIndex];
+        const count = countMatrix[j][originalIndex];
+        const h = y(0) - y(pct);
+        const yTop = yStart - h;
+
+        svg.append("rect")
+          .attr("x", x(col))
+          .attr("y", yTop)
+          .attr("width", x.bandwidth())
+          .attr("height", h)
+          .attr("fill", color(row));
+
+        if (count > 0 && h > 14) {
+          svg.append("text")
+            .attr("x", x(col) + x.bandwidth() / 2)
+            .attr("y", yTop + h / 2 + 4)
+            .attr("text-anchor", "middle")
+            .attr("fill", "#fff")
+            .attr("font-size", "11px")
+            .text(count);
+        }
+
+        yStart = yTop;
+      });
+
+      // ✅ Add total count at top of bar
+      const total = countMatrix.reduce((sum, row) => sum + row[originalIndex], 0);
+      svg.append("text")
+        .attr("x", x(col) + x.bandwidth() / 2)
+        .attr("y", yStart - 6)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "11px")
+        .text(total);
+    });
+
+      const legend = svg.selectAll(".legend")
+        .data(rowLabels)
+        .enter()
+        .append("g")
+        .attr("class", "legend")
+        .attr("transform", (d, i) => `translate(${width - margin.right + 20}, ${margin.top + i * 45})`);
+
+      legend.append("rect")
+        .attr("width", 18)
+        .attr("height", 18)
+        .style("fill", d => color(d));
+
+      legend.append("text")
+        .attr("x", 30)
+        .attr("y", 0)
+        .text(d => d)
+        .style("font-size", "13px")
+        .style("dominant-baseline", "hanging")
+        .call(wrapTextLegend, 120);
+    }
+
+    function wrapText(text, width) {
+      text.each(function () {
+        const text = d3.select(this);
+        const words = text.text().split(/\s+/).reverse();
+        let word, line = [], lineNumber = 0;
+        const lineHeight = 1.1, y = text.attr("y"), dy = parseFloat(text.attr("dy")) || 0;
+        let tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+        while ((word = words.pop())) {
+          line.push(word);
+          tspan.text(line.join(" "));
+          if (tspan.node().getComputedTextLength() > width) {
+            line.pop();
+            tspan.text(line.join(" "));
+            line = [word];
+            tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+          }
+        }
+      });
+    }
+
+    function wrapTextLegend(text, width) {
+      text.each(function () {
+        const text = d3.select(this);
+        const words = text.text().split(/\s+/).reverse();
+        let word, line = [], lineNumber = 0;
+        const lineHeight = 1.1, y = text.attr("y"), dy = parseFloat(text.attr("dy")) || 0;
+        let tspan = text.text(null).append("tspan").attr("x", 30).attr("y", y).attr("dy", dy + "em");
+        while ((word = words.pop())) {
+          line.push(word);
+          tspan.text(line.join(" "));
+          if (tspan.node().getComputedTextLength() > width) {
+            line.pop();
+            tspan.text(line.join(" "));
+            line = [word];
+            tspan = text.append("tspan").attr("x", 30).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+          }
+        }
+      });
+    }
+    </script>
   </div>
 </div>
 {% endblock %}

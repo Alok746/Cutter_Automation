@@ -8,13 +8,14 @@
       <input type="hidden" name="sheet" value="{{ sheet }}">
     </form>
 
+    <!-- NPS Summary Table -->
     <div class="table-wrapper">
       <table class="results-table matrix-table">
         <thead>
           <tr>
-            <th style="min-width: 100px;">Category</th>
+            <th>Category</th>
             {% for col in col_labels %}
-            <th>{{ col }}</th>
+              <th>{{ col }}</th>
             {% endfor %}
           </tr>
         </thead>
@@ -42,15 +43,17 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Score Distribution -->
     <hr style="border: none;">
     <h3>Score Distribution by Brand</h3>
     <div style="overflow-x: auto;">
       <table class="results-table matrix-table">
         <thead>
           <tr>
-            <th style="min-width: 100px;">Score</th>
+            <th>Score</th>
             {% for col in col_labels %}
-            <th>{{ col }}</th>
+              <th>{{ col }}</th>
             {% endfor %}
           </tr>
         </thead>
@@ -72,6 +75,330 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Generate Graph Button -->
+    <div style="text-align: center; margin-top: 2rem;">
+      <button id="toggleGraphBtn" class="btn btn-red">Generate Graph</button>
+    </div>
+
+    <!-- Modal -->
+    <div id="graphModal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width: 500px; margin: 5% auto; padding: 20px; border: 1px solid #ccc; background: #fff; border-radius: 8px;">
+        <h3>Select Options to Include</h3>
+        <form id="graphOptionsForm">
+          <label style="display: block; margin-bottom: 10px;">
+            <input type="checkbox" id="toggleAllBrands" checked> Select All / Deselect All
+          </label>
+          <div id="brandCheckboxes" style="max-height: 200px; overflow-y: auto; margin-bottom: 1rem;"></div>
+          <div style="text-align: right;">
+            <button type="submit" class="btn btn-success">Submit</button>
+            <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Graph Output -->
+    <div id="nps-chart" style="margin-top: 2rem;"></div>
+
+    <!-- Embed data safely -->
+    <script id="nps-data" type="application/json">
+    {
+      "labels": {{ col_labels | tojson }},
+      "totals": {{ col_totals | tojson }},
+      "promoters": {{ promoters | tojson }},
+      "neutrals": {{ neutrals | tojson }},
+      "detractors": {{ detractors | tojson }},
+      "npsScores": {{ nps_scores | tojson }},
+      "avgScores": {{ average_scores | tojson }}
+    }
+    </script>
+
+    <!-- Styles -->
+    <style>
+      .modal {
+        position: fixed;
+        z-index: 1001;
+        left: 0; top: 0;
+        width: 100%; height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+      }
+      .modal-content {
+        background: white;
+        padding: 20px;
+        margin: 5% auto;
+        border-radius: 10px;
+        max-width: 500px;
+        position: relative;
+      }
+
+      .brand-checkbox {
+        display: flex;
+        align-items: flex-start;        /* Top-align checkbox and label */
+        gap: 8px;
+        padding: 6px 0;
+        margin: 6px 0;
+        line-height: 1.3;
+        white-space: normal;           /* ✅ Allows wrapping */
+        word-break: break-word;        /* ✅ Break long words if needed */
+      }
+      .brand-checkbox input[type="checkbox"] {
+        margin-top: 2px;               /* Align with first line of label */
+        accent-color: #cc0000;
+      }
+
+    </style>
+    <script>
+      const toggleBtn = document.getElementById("toggleGraphBtn");
+
+      toggleBtn.addEventListener("click", function () {
+        if (toggleBtn.dataset.state === "shown") {
+          d3.select("#nps-chart").html("");
+          toggleBtn.innerText = "Generate Graph";
+          toggleBtn.dataset.state = "hidden";
+        } else {
+          openGraphModal();  // Show modal
+        }
+      });
+
+      function openGraphModal() {
+        const modal = document.getElementById("graphModal");
+        const checkboxesDiv = document.getElementById("brandCheckboxes");
+        checkboxesDiv.innerHTML = "";
+
+        const labels = JSON.parse(document.getElementById("nps-data").textContent).labels;
+        labels.forEach((label, i) => {
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.name = "brand";
+          checkbox.value = i;
+          checkbox.id = "brand_" + i;
+          checkbox.checked = true;
+
+          const labelElem = document.createElement("label");
+          labelElem.classList.add("brand-checkbox");
+          labelElem.htmlFor = checkbox.id;
+          labelElem.style.display = "block";
+          labelElem.style.marginBottom = "6px";
+          labelElem.innerText = label;
+          labelElem.prepend(checkbox);
+
+          checkboxesDiv.appendChild(labelElem);
+        });
+
+        modal.style.display = "block";
+      }
+
+    // ✅ Close modal on background click
+    window.addEventListener("click", function (event) {
+      const modal = document.getElementById("graphModal");
+      if (event.target === modal) {
+        closeModal();
+      }
+    });
+
+      function closeModal() {
+        document.getElementById("graphModal").style.display = "none";
+      }
+
+      document.getElementById("graphOptionsForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        closeModal();
+        const selectedIndices = Array.from(document.querySelectorAll('input[name="brand"]:checked'))
+          .map(cb => parseInt(cb.value));
+        generateNPSChart(selectedIndices);
+
+        toggleBtn.innerText = "Remove Graph";
+        toggleBtn.dataset.state = "shown";
+      });
+
+      document.getElementById("toggleAllBrands").addEventListener("change", function () {
+        const allBoxes = document.querySelectorAll('input[name="brand"]');
+        allBoxes.forEach(cb => cb.checked = this.checked);
+      });
+
+      function wrapText(textSelection, width) {
+        textSelection.each(function () {
+          const text = d3.select(this);
+          const words = text.text().split(/\s+/).reverse();
+          let word;
+          let line = [];
+          let lineNumber = 0;
+          const lineHeight = 1.1; // ems
+          const y = text.attr("y");
+          const dy = parseFloat(text.attr("dy")) || 0;
+          let tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+
+          while ((word = words.pop())) {
+            line.push(word);
+            tspan.text(line.join(" "));
+            if (tspan.node().getComputedTextLength() > width) {
+              line.pop();
+              tspan.text(line.join(" "));
+              line = [word];
+              tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+            }
+          }
+        });
+      }
+
+      function generateNPSChart(selectedIndices) {
+        d3.select("#nps-chart").html("");
+
+        const allData = JSON.parse(document.getElementById("nps-data").textContent);
+
+        const data = selectedIndices.map(i => ({
+          label: allData.labels[i],
+          total: allData.totals[i],
+          promoter: allData.promoters[i],
+          neutral: allData.neutrals[i],
+          detractor: allData.detractors[i],
+          nps: allData.npsScores[i],
+          avg: allData.avgScores[i],
+          pct: {
+            promoter: allData.totals[i] ? (allData.promoters[i] / allData.totals[i]) * 100 : 0,
+            neutral: allData.totals[i] ? (allData.neutrals[i] / allData.totals[i]) * 100 : 0,
+            detractor: allData.totals[i] ? (allData.detractors[i] / allData.totals[i]) * 100 : 0
+          }
+        })).sort((a, b) => b.nps - a.nps);
+
+        const width = document.getElementById("nps-chart").offsetWidth;
+        const height = 550;
+        const margin = { top: 20, right: 160, bottom: 130, left: 60 };
+
+        const svg = d3.select("#nps-chart")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+        const x = d3.scaleBand()
+          .domain(data.map(d => d.label))
+          .range([margin.left, width - margin.right])
+          .padding(0.2);
+
+        const y = d3.scaleLinear()
+          .domain([0, 100])
+          .range([height - margin.bottom, margin.top]);
+
+        const colorMap = {
+          detractor: "#d9534f",
+          neutral: "#bcbcbc",
+          promoter: "#4caf50"
+        };
+
+        // Y-axis
+        svg.append("g")
+          .attr("transform", `translate(${margin.left}, 0)`)
+          .call(d3.axisLeft(y).ticks(5).tickFormat(d => d + "%"));
+
+        // X-axis (horizontal labels)
+        svg.append("g")
+          .attr("transform", `translate(0, ${height - margin.bottom})`)
+          .call(d3.axisBottom(x))
+          .selectAll("text")
+          .style("text-anchor", "middle")
+          .attr("dy", "1.5em")
+          .attr("font-size", "15px")
+          .call(wrapText, x.bandwidth()); 
+
+        // Bars
+        data.forEach((d) => {
+          let yStart = y(0);
+          const xPos = x(d.label);
+
+          const segments = [
+            { key: "detractor", value: d.pct.detractor, count: d.detractor },
+            { key: "neutral", value: d.pct.neutral, count: d.neutral },
+            { key: "promoter", value: d.pct.promoter, count: d.promoter }
+          ];
+
+          segments.forEach(seg => {
+            const h = y(0) - y(seg.value);
+            const yTop = yStart - h;
+
+            svg.append("rect")
+              .attr("x", xPos)
+              .attr("y", yTop)
+              .attr("width", x.bandwidth())
+              .attr("height", h)
+              .attr("fill", colorMap[seg.key]);
+
+            if (seg.count > 0 && h > 14) {
+              svg.append("text")
+                .attr("x", xPos + x.bandwidth() / 2)
+                .attr("y", yTop + h / 2 + 4)
+                .attr("text-anchor", "middle")
+                .attr("fill", "#fff")
+                .attr("font-size", "15px")
+                .text(seg.count);
+            }
+
+            yStart = yTop;
+          });
+
+          svg.append("text")
+            .attr("x", xPos + x.bandwidth() / 2)
+            .attr("y", y(100) - 8)
+            .attr("text-anchor", "middle")
+            .attr("font-size", "15px")
+            .text(d.total);
+
+          svg.append("text")
+            .attr("x", xPos + x.bandwidth() / 2)
+            .attr("y", height - margin.bottom + 85)
+            .attr("text-anchor", "middle")
+            .attr("font-weight", "bold")
+            .attr("font-size", "15px")
+            .text(`${d.nps.toFixed(1)}%`);
+
+          svg.append("text")
+            .attr("x", xPos + x.bandwidth() / 2)
+            .attr("y", height - margin.bottom + 120)
+            .attr("text-anchor", "middle")
+            .attr("font-size", "15px")
+            .text(d.avg.toFixed(1));
+        });
+
+        // Labels
+        svg.append("text")
+          .attr("x", margin.left - 25)
+          .attr("y", height - margin.bottom + 85)
+          .attr("font-weight", "bold")
+          .text("NPS (%)");
+
+        svg.append("text")
+          .attr("x", margin.left - 25)
+          .attr("y", height - margin.bottom + 120)
+          .attr("font-weight", "bold")
+          .text("Avg. Score");
+
+        // Legend
+        const legendData = [
+          { label: "Promoter", color: "#4caf50" },
+          { label: "Neutral", color: "#bcbcbc" },
+          { label: "Detractor", color: "#d9534f" }
+        ];
+
+        const legend = svg.selectAll(".legend")
+          .data(legendData)
+          .enter()
+          .append("g")
+          .attr("class", "legend")
+          .attr("transform", (d, i) => `translate(${width - margin.right + 20}, ${margin.top + i * 25})`);
+
+        legend.append("rect")
+          .attr("width", 18)
+          .attr("height", 18)
+          .style("fill", d => d.color);
+
+        legend.append("text")
+          .attr("x", 24)
+          .attr("y", 13)
+          .text(d => d.label)
+          .style("font-size", "13px");
+      }
+    </script>
   </div>
 </div>
 {% endblock %}

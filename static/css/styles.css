@@ -22,6 +22,10 @@ body.has-fixed-header-footer {
   overflow-x: hidden;
 }
 
+input[type="checkbox"]{
+  margin: 5px;
+}
+
 .layout {
   display: flex;
   width: 100%;
@@ -214,6 +218,14 @@ body.has-fixed-header-footer {
   margin-bottom: 1rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   border: 1px solid #eee;
+}
+
+.filter-card select {
+  max-width: 100%;
+  width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 /* ❌ Floating close button */
@@ -703,4 +715,3 @@ input[type="radio"] {
     overflow-x: auto;
   }
 }
-
