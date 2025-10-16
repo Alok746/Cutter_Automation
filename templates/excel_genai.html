@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Gen AI Chat{% endblock %}
+{% set page_class = "genai-chat-page" %}
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<!-- HEADER -->
+<div class="bain-header-background">
+  <div class="bain-header w-100 d-flex justify-content-between align-items-center px-3">
+
+    <!-- Nav -->
+    <ul class="nav-tabs-custom d-flex gap-4 mb-0">
+      <li>
+        <a href="/" class="tab-link">← Back</a>
+      </li>
+      <li class="{% if active_tab == 'survey' %}active{% endif %}">
+        <a href="{{ url_for('select_columns') }}" class="tab-link">Survey Cutter</a>
+      </li>
+      <li class="{% if active_tab == 'genai' %}active{% endif %}">
+        <a href="{{ url_for('genai') }}" class="tab-link">Gen AI</a>
+      </li>
+    </ul>
+
+    <!-- Logo -->
+    <img src="{{ url_for('static', filename='images/Bain_&_Company_logo.svg.png') }}"
+         alt="Bain & Company"
+         class="bain-logo"
+         style="height: 32px; width: 200px; object-fit: contain;">
+  </div>
+</div>
+
+<div style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; padding: 100px 40px 40px; width: 100%; box-sizing: border-box; gap: 2rem;">
+  <!-- LEFT: Agentic AI (40%) -->
+  <!-- <div style="flex: 4; max-width: 50%;">
+    <h2 style="color: #cc0000; font-weight: bold; font-size: 1.6rem; text-align: center;">Agentic AI</h2>
+  </div> -->
+
+  <!-- RIGHT: Chatbot (60%) -->
+  <div style="flex: 6; max-width: 100%; display: flex; flex-direction: column; height: calc(100vh - 180px);">
+    <h2 style="color: #cc0000; font-weight: bold; font-size: 1.6rem; text-align: center;">Ask About Your Survey</h2>
+
+    <div id="chat-box" style="
+      flex-grow: 1;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: white;
+      margin-bottom: 1rem;
+      min-height: 200px;
+      max-height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1rem;
+    "></div>
+    <form id="chat-form" style="display: flex; gap: 1rem;">
+      <input type="text" id="chat-input" placeholder="Ask a question..." required style="flex: 1; padding: 0.6rem 1rem; border: 1px solid #ccc; border-radius: 6px;" />
+      <button type="submit" style=" background-color: #cc0000; color: white; border: none; padding: 0.6rem 1.5rem; border-radius: 6px; cursor: pointer;">Send</button>
+    </form>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="bain-footer-background">
+  <div class="bain-footer">
+    <img src="{{ url_for('static', filename='images/Bain_&_Company_logo.svg.png') }}"
+         alt="Bain & Company"
+         class="bain-logo">
+  </div>
+</div>
+
+<!-- JS for chat -->
+<script>
+const chatForm = document.getElementById('chat-form');
+const chatInput = document.getElementById('chat-input');
+const chatBox = document.getElementById('chat-box');
+
+chatForm.addEventListener('submit', function (e) {
+  e.preventDefault();
+
+  const userMessage = chatInput.value.trim();
+  if (!userMessage) return;
+
+  addMessage('user', userMessage);
+  chatInput.value = '';
+
+  const botMessage = document.createElement('div');
+  botMessage.className = 'chat-message bot';
+  botMessage.innerText = "Analysing..."; // NEW LINE
+  chatBox.appendChild(botMessage);
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  // ✅ Declare this outside stream function
+  let markdownBuffer = "";
+
+  fetch('/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: userMessage })
+  })
+  .then(response => {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+
+    const processChunk = async ({ done, value }) => {
+      if (done) {
+        markdownBuffer = markdownBuffer
+          .replace(/(?<!\n)- /g, '\n- ')                                      // bullets on new lines
+          .replace(/\*\*(.+?)\*\*:/g, '**$1:**')                              // normalize bold labels
+          .replace(/(\*\*.+?\*\*):(?=\s+\*\*)/g, '$1:\n- ')                   // split chained bold bullets
+          .replace(/- \*\*(.*?)\*\*\s*\n- /g, '- **$1:**\n- ')                // fix already split
+          .replace(/([^\n])\*\*(.+?)\*\*/g, '$1\n**$2**');                    // bold labels start new lines
+
+        console.log("[FINAL MARKDOWN]", markdownBuffer);
+
+        botMessage.innerHTML = marked.parse(markdownBuffer);
+        return;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const content = line.slice(6);
+          markdownBuffer += content;
+        }
+      }
+
+      return reader.read().then(processChunk);
+    };
+
+    return reader.read().then(processChunk);
+  })
+  .catch(err => {
+    botMessage.innerText = `[ERROR] ${err.message}`;
+    botMessage.classList.add("error");
+  });
+});
+
+function addMessage(sender, text) {
+  const msg = document.createElement('div');
+  msg.className = 'chat-message ' + sender;
+  msg.innerText = text;
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// ✅ Welcome message on page load
+window.addEventListener("DOMContentLoaded", function () {
+  const welcomeMessage = document.createElement("div");
+  welcomeMessage.className = "chat-message bot";
+  welcomeMessage.innerText = "Welcome, what would you like to know?";
+  chatBox.appendChild(welcomeMessage);
+  chatBox.scrollTop = chatBox.scrollHeight;
+});
+
+</script>
+
+{% endblock %}

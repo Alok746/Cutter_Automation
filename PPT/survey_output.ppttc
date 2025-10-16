@@ -1,0 +1,101 @@
+[
+  {
+    "slide": 1,
+    "data": [
+      {
+        "name": "QuestionTextSingle",
+        "table": [
+          [
+            {
+              "string": "Q8: Which of the following best describes your organization or your role in the value chain?"
+            }
+          ]
+        ]
+      },
+      {
+        "name": "SingleChart",
+        "table": [
+          [
+            null,
+            {
+              "string": "Q8: Which of the following best describes your organization or your role in the value chain?"
+            }
+          ],
+          [
+            {
+              "string": "B2B Distributor / Channel Partner"
+            },
+            {
+              "string": ""
+            }
+          ],
+          [
+            {
+              "string": "Consulting Engineer"
+            },
+            {
+              "string": ""
+            }
+          ],
+          [
+            {
+              "string": "Electrical Contractor / Installer"
+            },
+            {
+              "number": 75
+            }
+          ],
+          [
+            {
+              "string": "End-User / Building Owner"
+            },
+            {
+              "number": 46
+            }
+          ],
+          [
+            {
+              "string": "Engineering, Procurement, Construction (EPC)"
+            },
+            {
+              "number": 50
+            }
+          ],
+          [
+            {
+              "string": "Mechanical Contractor"
+            },
+            {
+              "number": 11
+            }
+          ],
+          [
+            {
+              "string": "Original Equipment Manufacturer (OEM)"
+            },
+            {
+              "string": ""
+            }
+          ],
+          [
+            {
+              "string": "Other (Please specify)"
+            },
+            {
+              "string": ""
+            }
+          ],
+          [
+            {
+              "string": "System Integrator / Design Firm"
+            },
+            {
+              "number": 16
+            }
+          ]
+        ]
+      }
+    ],
+    "template": "Single.pptx"
+  }
+]

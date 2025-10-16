@@ -2,7 +2,9 @@
   <form method="post" action="/compare_multi_questions" id="globalFilterForm">
     <input type="hidden" name="filename" value="{{ filename }}">
     <input type="hidden" name="sheet" value="{{ sheet }}">
-    <input type="hidden" name="filter_count" id="filter-count" value="{{ filter_questions|length if filter_questions else 0 }}">
+    <input type="hidden" name="data_format"  value="{{ data_format }}">
+    <input type="hidden" name="filter_count" id="filter-count" 
+          value="{{ filter_questions|length if filter_questions else 0 }}">
 
     <!-- ✅ Re-include selected questions, types (de-duplicated), and cut columns -->
     {% for q in all_columns %}
@@ -29,7 +31,8 @@
           <option value="">-- Select Question --</option>
           {% for code, text in filter_columns %}
             {% if 'single_choice' in recommendations.get(code, []) %}
-              <option value="{{ code }}" {% if code == filters[i] %}selected{% endif %} title="{{ code }}: {{ text }}">
+              <option value="{{ code }}" 
+                      {% if code == filters[i] %}selected{% endif %} title="{{ code }}: {{ text }}">
                 {{ code }}: {{ text }}
               </option>
             {% endif %}
@@ -78,13 +81,14 @@
   function loadFilterValues(questionSelect, valueSelect, prefillValue) {
     const question = questionSelect.value;
     const filename = document.querySelector('input[name="filename"]').value;
+    const dataFormat = document.querySelector('input[name="data_format"]').value;
 
     valueSelect.innerHTML = '<option>Loading...</option>';
 
     fetch("/get_answer_key_values", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ filename, question })
+      body: new URLSearchParams({ filename, question,data_format : dataFormat})
     })
     .then(response => response.json())
     .then(values => {

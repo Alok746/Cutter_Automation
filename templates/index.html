@@ -111,18 +111,12 @@
             <label class="form-label"><strong>Select Data Format</strong></label>
             <div>
               <label><input type="radio" name="data_format" value="inquery" checked> In-Query</label><br>
-              <label><input type="radio" name="data_format" value="qualtrics" disabled> Qualtrics (Coming Soon)</label>
+              <label><input type="radio" name="data_format" value="qualtrics" > Qualtrics</label>
             </div>
           </div>
-
-          <div class="d-flex gap-2">
-            <button type="submit" name="action" value="survey" class="btn btn-success w-50" style="padding: 5px;">
-              Continue with Survey Cutter
-            </button>
-            <button type="submit" name="action" value="genai" class="btn btn-success w-50" style="padding: 5px;" disabled>
-              Continue with Gen AI Analysis
-            </button>
-          </div>
+          <button type="submit" name="action" value="survey" class="btn btn-success w-100" style="padding: 5px;">
+            Continue with Survey Cutter
+          </button>
         </form>
       </div>
     </div>

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="layout">
+  <div class="content">
+    <form action="/select_columns" method="post" class="go-back">
+      <input type="hidden" name="filename" value="{{ filename }}">
+      <input type="hidden" name="sheet" value="{{ sheet }}">
+    </form>
+
+    <div class="table-wrapper">
+      <table class="results-table matrix-table">
+        <thead>
+          <tr>
+            <th>Range</th>
+            {% for col in col_labels %}
+              <th>{{ col }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in range(row_labels|length) %}
+          <tr>
+            <td class="row-label">{{ row_labels[i] }}</td>
+            {% for j in range(col_labels|length) %}
+            <td>{{ count_matrix[i][j] }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+          <tr class="total-row">
+            <td><strong>Total Responses</strong></td>
+            {% for total in col_totals %}
+              <td><strong>{{ total }}</strong></td>
+            {% endfor %}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

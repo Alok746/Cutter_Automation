@@ -30,17 +30,115 @@
         </div>
       </div>
     {% endfor %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">  
+      <form action="/select_columns" method="post">
+        <input type="hidden" name="filename" value="{{ filename }}">
+        <input type="hidden" name="sheet" value="{{ sheet }}">
+        <input type="hidden" name="data_format" value="{{ data_format }}">
+        <button type="submit" class="btn btn-red">
+          ← Back to Question Selection
+        </button>
+      </form>
+      <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+        <form action="{{ url_for('download_all_excel') }}" method="post">
+          <input type="hidden" name="filename" value="{{ filename }}">
+          <input type="hidden" name="sheet" value="{{ sheet }}">
+          {% for item in results %}
+            <input type="hidden" name="questions" value="{{ item.question }}">
+            {% for col in request.form %}
+              <input type="hidden" name="{{ col }}" value="{{ request.form.get(col) }}">
+            {% endfor %}
+          {% endfor %}
+          <button type="submit" class="btn btn-red" disabled>⬇ Download All Results (Excel)</button>
+        </form>
 
-    <form action="/select_columns" method="post" style="margin-top: 2rem;">
-      <input type="hidden" name="filename" value="{{ filename }}">
-      <input type="hidden" name="sheet" value="{{ sheet }}">
-      <button type="submit" style="padding: 10px 16px; font-size: 14px; background-color: #cc0000; color: white; border: none; border-radius: 4px; cursor: pointer;">
-        ← Back to Question Selection
-      </button>
-    </form>
+        <form id="pptDownloadForm" method="post">
+          <button type="button" class="btn btn-red" onclick="openSlidePicker()">⬇ Download Think-Cell PPT</button>
+        </form>
+        <!-- <div id="slidePickerModal" class="modal" style="display:none;">
+          <div class="modal-content" style="max-width: 500px; margin: 10% auto; padding: 20px; background: white; border-radius: 8px; border: 1px solid #ccc;">
+            <h4 style="margin-bottom: 1rem;">Select slides to include:</h4>
+            <form id="slidePickerForm" onsubmit="submitSlideSelection(event)">
+              {% for item in results %}
+                <label style="display:block; margin-bottom: 8px;">
+                  <input type="checkbox" name="selected_slides" value="{{ item.question }}" checked>
+                  {{ item.question }}: {{ item.text }}
+                  <div id="singleChoiceGrouping" style="margin-top: 1rem; display: none;">
+                    <h5>Group Single Choice Questions</h5>
+                    <p style="font-size: 0.9rem; color: #555;">Assign group numbers. Each group will be exported as a separate chart.</p>
+                    <div id="groupInputsContainer"></div>
+                  </div>
+
+                </label>
+              {% endfor %}
+              <div style="text-align: right; margin-top: 1rem;">
+                <button type="submit" class="btn btn-red">Download</button>
+                <button type="button" class="btn" onclick="closeSlidePicker()">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div> -->
+
+        <div id="slidePickerModal" class="modal" style="display:none;">
+          <div class="modal-content" style="max-width: 600px; margin: 5% auto; padding: 24px; background: white; border-radius: 10px; border: 1px solid #ccc;">
+            <h3 style="margin-bottom: 1rem; font-weight: 600;">📊 Select slides to include</h3>
+
+            <form id="slidePickerForm" onsubmit="submitSlideSelection(event)">
+              <!-- Question List -->
+              <div style="max-height: 300px; overflow-y: auto; padding-right: 8px;">
+                {% for item in results %}
+                  <label style="display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 10px;">
+                    <input type="checkbox" name="selected_slides" value="{{ item.question }}" checked style="margin-top: 4px;">
+                    <span><strong>{{ item.question }}</strong>: {{ item.text }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+
+              <!-- Single Choice Grouping Section -->
+              <div id="singleChoiceGrouping" style="margin-top: 1.5rem; padding: 1rem; background: #f9f9f9; border-radius: 6px; border: 1px solid #ddd; display: none;">
+                <h4 style="margin-bottom: 0.5rem;">🧩 Group Single Choice Questions</h4>
+                <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
+                  Assign group numbers below. Each group will be exported as a separate chart.
+                </p>
+                <div id="groupInputsContainer" style="display: grid; row-gap: 10px;"></div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-red">⬇ Download</button>
+                <button type="button" class="btn" onclick="closeSlidePicker()">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div id="filterFields" style="display: none;">
+          {% for i in range(filter_questions|length) %}
+            <input type="hidden" name="filter_question_{{ i }}" value="{{ filter_questions[i] }}">
+            <input type="hidden" name="filter_value_{{ i }}" value="{{ filter_values[i] }}">
+          {% endfor %}
+          <input type="hidden" name="filter_count" value="{{ filter_questions|length }}">
+          <input type="hidden" name="sort_column" value="{{ sort_column }}">
+        </div>
+      </div>
+    </div>  
   </div>
 </div>
 
+<script type="application/json" id="questionTypeData">
+{
+  {% for item in results %}
+    "{{ item.question }}": {{ request.form.getlist('type_' ~ item.question) | tojson }}{% if not loop.last %},{% endif %}
+  {% endfor %}
+}
+</script>
+
+<!-- JS: Load it without squiggles -->
+<script>
+  const questionTypeMap = JSON.parse(
+    document.getElementById("questionTypeData").textContent
+  );
+</script>
 <script>
   function toggleBox(header) {
     const content = header.nextElementSibling;
@@ -87,5 +185,143 @@
       toggleAllCollapsibles(this);
     });
   });
+  
+  function openSlidePicker() {
+    document.getElementById('slidePickerModal').style.display = 'block';
+  }
+
+  function closeSlidePicker() {
+    document.getElementById('slidePickerModal').style.display = 'none';
+  }
+
+  function createHiddenInput(name, value) {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = value;
+    return input;
+  }
+
+  function submitSlideSelection(e) {
+    e.preventDefault();
+
+    const selected = Array.from(document.querySelectorAll('input[name="selected_slides"]:checked'))
+      .map(cb => cb.value);
+
+    if (selected.length === 0) {
+      alert("Please select at least one slide.");
+      return;
+    }
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "{{ url_for('download_thinkcell_ppt') }}";
+
+    form.appendChild(createHiddenInput("filename", "{{ filename }}"));
+    form.appendChild(createHiddenInput("sheet", "{{ sheet }}"));
+
+    const filterFields = document.querySelectorAll('#filterFields input');
+    filterFields.forEach(input => {
+      form.appendChild(input.cloneNode(true));
+    });
+
+    selected.forEach(qid => {
+      form.appendChild(createHiddenInput("questions", qid));
+      (questionTypeMap[qid] || []).forEach(type => {
+        form.appendChild(createHiddenInput(`type_${qid}`, type));
+      });
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  function renderGroupInputs() {
+    const selectedCheckboxes = document.querySelectorAll('input[name="selected_slides"]:checked');
+    const container = document.getElementById('groupInputsContainer');
+    container.innerHTML = "";
+
+    let hasSingleChoice = false;
+
+    selectedCheckboxes.forEach(cb => {
+      const qid = cb.value;
+      const types = questionTypeMap[qid] || [];
+      if (types.includes("single_choice")) {
+        hasSingleChoice = true;
+
+        const div = document.createElement("div");
+        div.style.marginBottom = "8px";
+
+        div.innerHTML = `
+          <label>
+            ${qid}: Group #
+            <input type="number" name="group_${qid}" value="1" min="1" style="width: 60px;">
+          </label>
+        `;
+        container.appendChild(div);
+      }
+    });
+
+    document.getElementById("singleChoiceGrouping").style.display = hasSingleChoice ? "block" : "none";
+  }
+
+  function openSlidePicker() {
+    document.getElementById('slidePickerModal').style.display = 'block';
+    renderGroupInputs();  // 🆕 show group fields dynamically
+  }
+
+  function closeSlidePicker() {
+    document.getElementById('slidePickerModal').style.display = 'none';
+  }
+
+  function createHiddenInput(name, value) {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = value;
+    return input;
+  }
+
+  function submitSlideSelection(e) {
+    e.preventDefault();
+
+    const selected = Array.from(document.querySelectorAll('input[name="selected_slides"]:checked'))
+      .map(cb => cb.value);
+
+    if (selected.length === 0) {
+      alert("Please select at least one slide.");
+      return;
+    }
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "{{ url_for('download_thinkcell_ppt') }}";
+
+    form.appendChild(createHiddenInput("filename", "{{ filename }}"));
+    form.appendChild(createHiddenInput("sheet", "{{ sheet }}"));
+
+    const filterFields = document.querySelectorAll('#filterFields input');
+    filterFields.forEach(input => {
+      form.appendChild(input.cloneNode(true));
+    });
+
+    selected.forEach(qid => {
+      form.appendChild(createHiddenInput("questions", qid));
+
+      // 🆕 Add grouping info for single_choice
+      if ((questionTypeMap[qid] || []).includes("single_choice")) {
+        const groupVal = document.querySelector(`input[name="group_${qid}"]`)?.value || "1";
+        form.appendChild(createHiddenInput(`group_single_${qid}`, groupVal));
+      }
+
+      (questionTypeMap[qid] || []).forEach(type => {
+        form.appendChild(createHiddenInput(`type_${qid}`, type));
+      });
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  }
 </script>
+
 {% endblock %}
